@@ -4,8 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/services/api';
+import { UserManagement } from '@/components/features/UserManagement';
 
 interface ApprovalRequest {
   id: string;
@@ -113,56 +115,69 @@ export function AdminPage() {
     <div className="container mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Admin Panel</h1>
-        <p className="text-gray-600">Manage user approval requests</p>
+        <p className="text-gray-600">Manage system users and approval requests</p>
       </div>
 
-      <div className="grid gap-6">
-        {requests.length === 0 ? (
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center text-gray-500">
-                No approval requests found
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          requests.map((request) => (
-            <Card key={request.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{request.name}</CardTitle>
-                    <CardDescription>{request.email}</CardDescription>
+      <Tabs defaultValue="approvals" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="approvals">Approval Requests</TabsTrigger>
+          <TabsTrigger value="users">User Management</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="approvals" className="space-y-6">
+          <div className="grid gap-6">
+            {requests.length === 0 ? (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center text-gray-500">
+                    No approval requests found
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(request.status)}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedRequest(request)}
-                    >
-                      {request.status === 'pending' ? 'Review' : 'View Details'}
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-gray-600">
-                  <p>Requested: {formatDate(request.requested_at)}</p>
-                  {request.reviewed_at && (
-                    <p>Reviewed: {formatDate(request.reviewed_at)}</p>
-                  )}
-                  {request.admin_notes && (
-                    <p className="mt-2">
-                      <strong>Admin Notes:</strong> {request.admin_notes}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                </CardContent>
+              </Card>
+            ) : (
+              requests.map((request) => (
+                <Card key={request.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{request.name}</CardTitle>
+                        <CardDescription>{request.email}</CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(request.status)}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedRequest(request)}
+                        >
+                          {request.status === 'pending' ? 'Review' : 'View Details'}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm text-gray-600">
+                      <p>Requested: {formatDate(request.requested_at)}</p>
+                      {request.reviewed_at && (
+                        <p>Reviewed: {formatDate(request.reviewed_at)}</p>
+                      )}
+                      {request.admin_notes && (
+                        <p className="mt-2">
+                          <strong>Admin Notes:</strong> {request.admin_notes}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="users">
+          <UserManagement />
+        </TabsContent>
+      </Tabs>
 
       {/* Review Modal */}
       {selectedRequest && (
@@ -185,7 +200,7 @@ export function AdminPage() {
                   rows={3}
                 />
               </div>
-              
+
               {selectedRequest.status === 'pending' && (
                 <div className="flex gap-2">
                   <Button
@@ -205,7 +220,7 @@ export function AdminPage() {
                   </Button>
                 </div>
               )}
-              
+
               <Button
                 onClick={() => {
                   setSelectedRequest(null);

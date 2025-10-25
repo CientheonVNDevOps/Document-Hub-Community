@@ -1,20 +1,32 @@
 import React, { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { notesService } from '@/services/notesService'
+import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
-import { Save, History, MoreVertical } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog'
+import { Save, Trash2, AlertTriangle } from 'lucide-react'
 
 export const NotePage = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+
   const queryClient = useQueryClient()
+  const { addToTrashOptimistically } = useTrashOptimisticUpdate()
 
   const { data: note, isLoading } = useQuery({
     queryKey: ['note', id],
@@ -31,7 +43,7 @@ export const NotePage = () => {
   }, [note])
 
   const updateNoteMutation = useMutation({
-    mutationFn: (data: { title: string; content: string }) => 
+    mutationFn: (data: { title: string; content: string }) =>
       notesService.updateNote(id!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['note', id] })
@@ -40,8 +52,31 @@ export const NotePage = () => {
     }
   })
 
+  const moveToTrashMutation = useMutation({
+    mutationFn: () => notesService.moveToTrash(id!),
+    onSuccess: () => {
+      // Optimistic update: Add note to trash immediately
+      if (note) {
+        addToTrashOptimistically(note)
+      }
+
+      // Invalidate all relevant caches for immediate UI update
+      queryClient.invalidateQueries({ queryKey: ['trash-notes'] })
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      queryClient.invalidateQueries({ queryKey: ['note', id] })
+
+      // Navigate to dashboard after successful deletion
+      navigate('/dashboard')
+    }
+  })
+
   const handleSave = () => {
     updateNoteMutation.mutate({ title, content })
+  }
+
+  const handleMoveToTrash = () => {
+    moveToTrashMutation.mutate()
   }
 
   if (isLoading) {
@@ -70,32 +105,23 @@ export const NotePage = () => {
               )}
             </div>
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="icon">
-                <History className="h-4 w-4" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
-              Last updated: {new Date(note.updated_at).toLocaleString()}
-              {note.version > 1 && (
-                <span className="ml-2">• Version {note.version}</span>
-              )}
-            </div>
-            <div className="flex space-x-2">
               {isEditing ? (
                 <>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setIsEditing(false)}
                   >
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleSave}
                     disabled={updateNoteMutation.isPending}
                   >
@@ -108,7 +134,15 @@ export const NotePage = () => {
                   Edit
                 </Button>
               )}
+
             </div>
+          </div>
+
+          <div className="text-sm text-gray-500">
+            Last updated: {new Date(note.updated_at).toLocaleString()}
+            {note.version > 1 && (
+              <span className="ml-2">• Version {note.version}</span>
+            )}
           </div>
         </div>
 
@@ -131,6 +165,44 @@ export const NotePage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Note Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <AlertTriangle className="h-5 w-5 mr-2 text-red-500" />
+              Move to Trash
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to move this note to trash? You can recover it later from the trash folder.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center p-3 bg-yellow-50 rounded-md">
+              <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
+              <span className="text-sm text-yellow-700">
+                Note: "{note?.title}" will be moved to trash
+              </span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleMoveToTrash}
+              disabled={moveToTrashMutation.isPending}
+            >
+              {moveToTrashMutation.isPending ? 'Moving...' : 'Move to Trash'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

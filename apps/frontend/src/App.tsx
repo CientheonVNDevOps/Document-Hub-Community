@@ -8,6 +8,7 @@ import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { NotePage } from '@/pages/NotePage'
 import { AdminPage } from '@/pages/AdminPage'
+import { TrashPage } from './pages/TrashPage'
 
 function App() {
   return (
@@ -16,15 +17,81 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
-          path="/*"
+          path="/"
           element={
             <ProtectedRoute>
               <Layout>
-                <Routes>
-                  <Route path="/" element={<DashboardPage />} />
-                  <Route path="/note/:id" element={<NotePage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                </Routes>
+                <DashboardPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <DashboardPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/note/:id"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <NotePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/note/:id"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <NotePage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AdminPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trash"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <TrashPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/trash"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <TrashPage />
               </Layout>
             </ProtectedRoute>
           }

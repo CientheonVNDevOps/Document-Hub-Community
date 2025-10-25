@@ -1,3 +1,8 @@
+// Suppress Node.js deprecation warnings
+process.removeAllListeners('warning');
+process.on('warning', () => {});
+process.env.NODE_NO_WARNINGS = '1';
+
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -32,8 +37,8 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3003;
   await app.listen(port);
-  console.log(`🚀 Backend server running on http://localhost:${port}`);
-  console.log(`📚 API Documentation available at http://localhost:${port}/api/docs`);
+  console.log(`Backend server running on http://localhost:${port}`);
+  console.log(`API Documentation available at http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

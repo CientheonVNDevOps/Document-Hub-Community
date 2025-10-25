@@ -1,17 +1,33 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { 
-  FileText, 
-  Folder, 
-  Plus, 
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  FileText,
+  Folder as FolderIcon,
+  Plus,
   Trash2,
   ChevronRight,
   ChevronDown,
-  Shield
+  Shield,
+  Edit2,
+  Check,
+  X,
+  FilePlus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/auth/AuthProvider'
+import { notesService, Note } from '@/services/notesService'
+import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
 
 interface SidebarProps {
   isOpen: boolean
@@ -20,118 +36,535 @@ interface SidebarProps {
 
 export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const [expandedFolders, setExpandedFolders] = useState<string[]>([])
+  const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+
+  // File creation states
+  const [isCreateFileOpen, setIsCreateFileOpen] = useState(false)
+  const [newFileName, setNewFileName] = useState('')
+  const [selectedFolderForFile, setSelectedFolderForFile] = useState<string | null>(null)
+
+  // Rename states
+  const [editingItem, setEditingItem] = useState<{ type: 'folder' | 'note', id: string } | null>(null)
+  const [editName, setEditName] = useState('')
   const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const { addToTrashOptimistically } = useTrashOptimisticUpdate()
+
+  // Move to trash functionality with optimistic updates
+  const handleMoveToTrash = async (noteId: string) => {
+    let noteToMove: Note | undefined
+
+    try {
+      // Optimistic update: Remove from local state immediately
+      noteToMove = notesData.find(note => note.id === noteId)
+      // Note: We don't need to update local state since we're using React Query data directly
+
+      // Update trash count optimistically
+      if (noteToMove) {
+        // Add to trash cache immediately for instant UI update
+        addToTrashOptimistically(noteToMove)
+      }
+
+      // Perform the actual API call
+      await notesService.moveToTrash(noteId)
+      
+      // Invalidate caches to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
+      queryClient.invalidateQueries({ queryKey: ['trash-notes'] })
+    } catch (error) {
+      console.error('Failed to move note to trash:', error)
+      // Revert optimistic update on error - React Query will handle this automatically
+      if (noteToMove) {
+        // React Query will refetch and restore the correct state
+      }
+    }
+  }
+
+  // Move folder to trash functionality
+  const handleMoveFolderToTrash = async (folderId: string) => {
+    try {
+      await notesService.deleteFolder(folderId)
+      
+      // Invalidate caches to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
+    } catch (error) {
+      console.error('Failed to move folder to trash:', error)
+    }
+  }
+
+  // Get folders and notes using React Query for better caching
+  const { data: foldersData = [], isLoading: foldersLoading } = useQuery({
+    queryKey: ['folders'],
+    queryFn: () => notesService.getFolders(),
+    retry: 1,
+    refetchOnWindowFocus: false
+  })
+
+  const { data: notesData = [], isLoading: notesLoading } = useQuery({
+    queryKey: ['notes'],
+    queryFn: () => notesService.getNotes(),
+    retry: 1,
+    refetchOnWindowFocus: false
+  })
+
+  // Get trash notes count using React Query
+  const { data: trashNotes = [] } = useQuery({
+    queryKey: ['trash-notes'],
+    queryFn: () => notesService.getTrashNotes(),
+    retry: 1,
+    refetchOnWindowFocus: false
+  })
+
+  // Use React Query data directly instead of local state
 
   const toggleFolder = (folderId: string) => {
-    setExpandedFolders(prev => 
-      prev.includes(folderId) 
+    setExpandedFolders(prev =>
+      prev.includes(folderId)
         ? prev.filter(id => id !== folderId)
         : [...prev, folderId]
     )
   }
 
-  // Mock data - in real app, this would come from Redux store
-  const folders = [
-    { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Personal', parent_id: null },
-    { id: '550e8400-e29b-41d4-a716-446655440002', name: 'Work', parent_id: null },
-    { id: '550e8400-e29b-41d4-a716-446655440003', name: 'Projects', parent_id: '550e8400-e29b-41d4-a716-446655440002' },
-  ]
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return
 
-  const notes = [
-    { id: '550e8400-e29b-41d4-a716-446655440011', title: 'Meeting Notes', folder_id: '550e8400-e29b-41d4-a716-446655440002' },
-    { id: '550e8400-e29b-41d4-a716-446655440012', title: 'Ideas', folder_id: '550e8400-e29b-41d4-a716-446655440001' },
-    { id: '550e8400-e29b-41d4-a716-446655440013', title: 'Project Plan', folder_id: '550e8400-e29b-41d4-a716-446655440003' },
-  ]
+    try {
+      await notesService.createFolder({
+        name: newFolderName.trim()
+      })
+
+      // Invalidate and refetch folders data
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
+
+      // No subfolder support - only root folders
+
+      // Reset form
+      setNewFolderName('')
+      setIsCreateFolderOpen(false)
+    } catch (error) {
+      console.error('Failed to create folder:', error)
+    }
+  }
+
+  const openCreateFolderDialog = () => {
+    setIsCreateFolderOpen(true)
+  }
+
+  const openCreateFileDialog = (folderId?: string) => {
+    setSelectedFolderForFile(folderId || null)
+    setIsCreateFileOpen(true)
+  }
+
+  const handleCreateFile = async () => {
+    if (!newFileName.trim() || !selectedFolderForFile) return
+
+    try {
+      await notesService.createNote({
+        title: newFileName.trim(),
+        folder_id: selectedFolderForFile
+      })
+
+      // Invalidate and refetch notes data
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
+
+      // Keep the parent folder open
+      setExpandedFolders(prev =>
+        prev.includes(selectedFolderForFile)
+          ? prev
+          : [...prev, selectedFolderForFile]
+      )
+
+      // Reset form
+      setNewFileName('')
+      setSelectedFolderForFile(null)
+      setIsCreateFileOpen(false)
+    } catch (error) {
+      console.error('Failed to create file:', error)
+    }
+  }
+
+  // Rename functions
+  const startRename = (type: 'folder' | 'note', id: string, currentName: string) => {
+    setEditingItem({ type, id })
+    setEditName(currentName)
+  }
+
+  const handleRename = async () => {
+    if (!editingItem || !editName.trim()) return
+
+    try {
+      if (editingItem.type === 'folder') {
+        await notesService.renameFolder(editingItem.id, editName.trim())
+        // Invalidate and refetch folders data
+        queryClient.invalidateQueries({ queryKey: ['folders'] })
+      } else {
+        await notesService.renameNote(editingItem.id, editName.trim())
+        // Invalidate and refetch notes data
+        queryClient.invalidateQueries({ queryKey: ['notes'] })
+      }
+
+      setEditingItem(null)
+      setEditName('')
+    } catch (error) {
+      console.error('Failed to rename:', error)
+    }
+  }
+
+  const cancelRename = () => {
+    setEditingItem(null)
+    setEditName('')
+  }
+
+  // Get root folders (no parent) - only 2 layers: folders and files
+  const rootFolders = foldersData.filter(folder => !folder.parent_id)
 
   return (
     <div className={cn(
       "bg-white border-r transition-all duration-300",
-      isOpen ? "w-64" : "w-16"
+      isOpen ? "w-[350px]" : "w-16"
     )}>
-      <div className="p-4">
+      <div className="p-3">
         <div className="flex items-center justify-between mb-4">
-          {isOpen && <h2 className="text-lg font-semibold">Notes</h2>}
+          {isOpen &&
+            <div className="flex items-center justify-center gap-x-2">
+              <img src="/vite.png" alt="Document Hub Cientheon" width={30} height={30} />
+              <h2 className="text-lg font-semibold">Document Hub Cientheon</h2>
+            </div>
+          }
           <Button variant="ghost" size="icon" onClick={onToggle}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        
+
         <div className="space-y-2">
-          <Button variant="ghost" className="w-full justify-start" asChild>
-            <Link to="/">
-              <FileText className="h-4 w-4 mr-2" />
-              {isOpen && "All Notes"}
-            </Link>
-          </Button>
-          
-          <Button variant="ghost" className="w-full justify-start" asChild>
-            <Link to="/trash">
-              <Trash2 className="h-4 w-4 mr-2" />
-              {isOpen && "Trash"}
-            </Link>
-          </Button>
-          
+          <Link
+            to="/dashboard"
+            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            {isOpen && "Dashboard"}
+          </Link>
           {user?.role === 'admin' && (
-            <Button variant="ghost" className="w-full justify-start" asChild>
-              <Link to="/admin">
-                <Shield className="h-4 w-4 mr-2" />
-                {isOpen && "Admin Panel"}
-              </Link>
-            </Button>
+            <Link
+              to="/dashboard/admin"
+              className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              {isOpen && "Admin Panel"}
+            </Link>
           )}
+          <Link
+            to="/trash"
+            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            {isOpen && (
+              <div className="flex items-center justify-between w-full">
+                <span>Trash</span>
+                {trashNotes.length > 0 && (
+                  <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                    {trashNotes.length}
+                  </span>
+                )}
+              </div>
+            )}
+          </Link>
         </div>
       </div>
 
       {isOpen && (
-        <div className="px-4 pb-4">
+        <div className="pl-5 p-2 pb-4 space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-500">Folders</h3>
-            <Button variant="ghost" size="icon" className="h-6 w-6">
-              <Plus className="h-3 w-3" />
-            </Button>
-          </div>
-          
-          <div className="space-y-1">
-            {folders.map((folder) => (
-              <div key={folder.id}>
+            <h3 className="text-sm font-medium text-gray-500">Community Folders</h3>
+            <div className="flex items-center gap-1">
+              {(user?.role === 'admin' || user?.role === 'manager') && (
                 <Button
                   variant="ghost"
-                  className="w-full justify-start h-8"
-                  onClick={() => toggleFolder(folder.id)}
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => openCreateFolderDialog()}
                 >
-                  {expandedFolders.includes(folder.id) ? (
-                    <ChevronDown className="h-3 w-3 mr-1" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3 mr-1" />
-                  )}
-                  <Folder className="h-3 w-3 mr-2" />
-                  {folder.name}
+                  <Plus className="h-3 w-3" />
                 </Button>
-                
-                {expandedFolders.includes(folder.id) && (
-                  <div className="ml-4 space-y-1">
-                    {notes
-                      .filter(note => note.folder_id === folder.id)
-                      .map((note) => (
-                        <Button
-                          key={note.id}
-                          variant="ghost"
-                          className="w-full justify-start h-7 text-sm"
-                          asChild
-                        >
-                          <Link to={`/note/${note.id}`}>
-                            <FileText className="h-3 w-3 mr-2" />
-                            {note.title}
-                          </Link>
-                        </Button>
-                      ))}
-                  </div>
-                )}
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2 max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-thin -ml-5">
+            {foldersLoading || notesLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="text-sm text-gray-500">Loading...</div>
               </div>
-            ))}
+            ) : rootFolders.length === 0 ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="text-sm text-gray-500">No folders found</div>
+              </div>
+            ) : (
+              rootFolders.map((folder) => (
+                <div key={folder.id}>
+                  <div className="flex items-center">
+                    <Button
+                      variant="ghost"
+                      className="flex-1 justify-start h-8"
+                      onClick={() => toggleFolder(folder.id)}
+                    >
+                      {expandedFolders.includes(folder.id) ? (
+                        <ChevronDown className="h-3 w-3 mr-1" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3 mr-1" />
+                      )}
+                      <FolderIcon className="h-3 w-3 mr-1" />
+                      {editingItem?.type === 'folder' && editingItem.id === folder.id ? (
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="h-auto text-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRename()
+                            if (e.key === 'Escape') cancelRename()
+                          }}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        folder.name
+                      )}
+                    </Button>
+                    <div className="flex items-center ml-1">
+                      {editingItem?.type === 'folder' && editingItem.id === folder.id ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={handleRename}
+                          >
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={cancelRename}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          {(user?.role === 'admin' || user?.role === 'manager') && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              onClick={() => startRename('folder', folder.id, folder.name)}
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {(user?.role === 'admin' || user?.role === 'manager') && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              onClick={() => openCreateFileDialog(folder.id)}
+                            >
+                              <FilePlus className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {user?.role === 'admin' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 text-red-500 hover:text-red-700"
+                              onClick={() => handleMoveFolderToTrash(folder.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedFolders.includes(folder.id) && (
+                    <div className="ml-4 space-y-1">
+                      {/* Files in this folder - 2 layers only */}
+                       {(() => {
+                         const folderNotes = notesData.filter(note => note.folder_id === folder.id);
+                         return folderNotes.length === 0 ? (
+                          <div className="text-xs text-gray-400 py-1 px-3">
+                            No notes in this folder
+                          </div>
+                        ) : (
+                          folderNotes.map((note) => (
+                            <div key={note.id} className="flex items-center">
+                              <Link
+                                to={`/dashboard/note/${note.id}`}
+                                className="flex-1 flex items-center h-7 text-sm px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
+                              >
+                                <FileText className="size-3 mr-2" />
+                                {editingItem?.type === 'note' && editingItem.id === note.id ? (
+                                  <Input
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    className="h-5 text-sm"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleRename()
+                                      if (e.key === 'Escape') cancelRename()
+                                    }}
+                                    autoFocus
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                ) : (
+                                  <span className="line-clamp-1">{note.title}</span>
+                                )}
+                              </Link>
+                              {editingItem?.type === 'note' && editingItem.id === note.id ? (
+                                <div className="flex items-center ml-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4"
+                                    onClick={handleRename}
+                                  >
+                                    <Check className="h-2 w-2" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4"
+                                    onClick={cancelRename}
+                                  >
+                                    <X className="h-2 w-2" />
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center ml-1">
+                                  {(user?.role === 'admin' || user?.role === 'manager') && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4"
+                                      onClick={() => startRename('note', note.id, note.title)}
+                                    >
+                                      <Edit2 className="h-2 w-2" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-4 w-4 text-red-500 hover:text-red-700"
+                                    onClick={() => handleMoveToTrash(note.id)}
+                                  >
+                                    <Trash2 className="h-2 w-2" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
+
+      {/* Create Folder Dialog */}
+      <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogDescription>
+              Create a new folder to organize your notes and files.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Folder Name</label>
+              <Input
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Enter folder name"
+                className="mt-1"
+                autoFocus
+              />
+            </div>
+            <div className="text-sm text-gray-500">
+              This folder will contain your notes. You can organize notes by moving them into different folders.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateFolderOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateFolder}
+              disabled={!newFolderName.trim()}
+            >
+              Create Folder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create File Dialog */}
+      <Dialog open={isCreateFileOpen} onOpenChange={setIsCreateFileOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New File</DialogTitle>
+            <DialogDescription>
+              Create a new file in the selected folder.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">File Name</label>
+              <Input
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                placeholder="Enter file name"
+                className="mt-1"
+                autoFocus
+              />
+            </div>
+            {selectedFolderForFile && (
+              <div>
+                <label className="text-sm font-medium">Target Folder</label>
+                <div className="mt-1 p-2 bg-gray-50 rounded text-sm">
+                  {foldersData.find(f => f.id === selectedFolderForFile)?.name}
+                </div>
+              </div>
+            )}
+            <div className="text-sm text-gray-500">
+              This file will be created in the selected folder. You can edit it after creation.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateFileOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateFile}
+              disabled={!newFileName.trim() || !selectedFolderForFile}
+            >
+              Create File
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

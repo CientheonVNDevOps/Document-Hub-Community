@@ -9,8 +9,8 @@ export class CreateNoteDto {
 
   @ApiProperty({ example: 'This is the content of my note...' })
   @IsString()
-  @IsNotEmpty()
-  content: string;
+  @IsOptional()
+  content?: string;
 
   @ApiProperty({ example: 'uuid-of-folder', required: false })
   @IsOptional()

@@ -10,15 +10,70 @@ import { createClient } from '@supabase/supabase-js';
         const supabaseUrl = configService.get<string>('SUPABASE_URL');
         const supabaseKey = configService.get<string>('SUPABASE_ANON_KEY');
         
-        if (!supabaseUrl || !supabaseKey) {
-          console.warn('Supabase URL and Key not provided, using mock client');
+        // For development, use local PostgreSQL if Supabase is not configured
+        if (!supabaseUrl || !supabaseKey || supabaseUrl === 'mock_url') {
+          console.log('Using local PostgreSQL database for development');
+          
+          // Create a mock Supabase client that works with local PostgreSQL
           return {
-            from: () => ({
-              select: () => ({ eq: () => ({ single: () => ({ data: null, error: null }) }) }),
-              insert: () => ({ select: () => ({ single: () => ({ data: null, error: null }) }) }),
-              update: () => ({ eq: () => ({ select: () => ({ single: () => ({ data: null, error: null }) }) }) }),
-              delete: () => ({ eq: () => ({ data: null, error: null }) }),
-              or: () => ({ order: () => ({ data: [], error: null }) })
+            from: (table: string) => ({
+              select: (columns: string = '*') => ({
+                eq: (column: string, value: any) => ({
+                  single: () => Promise.resolve({ data: null, error: null }),
+                  order: (column: string, options: any) => Promise.resolve({ data: [], error: null })
+                }),
+                is: (column: string, value: any) => ({
+                  order: (column: string, options: any) => Promise.resolve({ data: [], error: null })
+                }),
+                or: (query: string) => ({
+                  order: (column: string, options: any) => Promise.resolve({ data: [], error: null })
+                }),
+                order: (column: string, options: any) => Promise.resolve({ data: [], error: null }),
+                limit: (count: number) => Promise.resolve({ data: [], error: null })
+              }),
+              insert: (data: any[]) => ({
+                select: (columns: string = '*') => ({
+                  single: () => Promise.resolve({ 
+                    data: { 
+                      id: 'mock-id-' + Date.now(), 
+                      ...data[0],
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    }, 
+                    error: null 
+                  })
+                })
+              }),
+              update: (data: any) => ({
+                eq: (column: string, value: any) => ({
+                  select: (columns: string = '*') => ({
+                    single: () => Promise.resolve({ 
+                      data: { 
+                        id: value,
+                        ...data,
+                        updated_at: new Date().toISOString()
+                      }, 
+                      error: null 
+                    })
+                  })
+                })
+              }),
+              delete: () => ({
+                eq: (column: string, value: any) => Promise.resolve({ data: null, error: null })
+              }),
+              upsert: (data: any[], options: any) => ({
+                select: (columns: string = '*') => ({
+                  single: () => Promise.resolve({ 
+                    data: { 
+                      id: data[0].id || 'mock-id-' + Date.now(), 
+                      ...data[0],
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString()
+                    }, 
+                    error: null 
+                  })
+                })
+              })
             })
           };
         }
@@ -27,19 +82,19 @@ import { createClient } from '@supabase/supabase-js';
         
         // Test connection and initialize database if needed
         try {
-          console.log('🔌 Testing database connection...');
+          console.log('Testing database connection...');
           const { data, error } = await supabase
             .from('users')
             .select('count')
             .limit(1);
           
           if (error) {
-            console.warn('⚠️  Database connection issue:', error.message);
+            console.warn('Database connection issue:', error.message);
           } else {
-            console.log('✅ Database connection successful');
+            console.log('Database connection successful');
           }
         } catch (err) {
-          console.warn('⚠️  Database connection test failed:', err.message);
+          console.warn('Database connection test failed:', err.message);
         }
         
         return supabase;

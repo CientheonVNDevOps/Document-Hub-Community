@@ -99,18 +99,37 @@ export class UsersService {
     // Validate UUID
     this.validateUUID(id, 'user ID');
 
-    const { data, error } = await this.supabase
-      .from('users')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      // Handle password update separately if provided
+      if (updateData.password) {
+        // Validate password strength
+        const passwordValidation = this.passwordService.validatePasswordStrength(updateData.password);
+        if (!passwordValidation.isValid) {
+          throw new BadRequestException(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
+        }
 
-    if (error) {
+        // Hash the password
+        const hashedPassword = await this.passwordService.hashPassword(updateData.password);
+        updateData.password = hashedPassword;
+      }
+
+      const { data, error } = await this.supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error:', error);
+        throw new Error(`Failed to update user: ${error.message}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('User update error:', error);
       throw new Error(`Failed to update user: ${error.message}`);
     }
-
-    return data;
   }
 
   async delete(id: string, userRole?: string) {
@@ -151,9 +170,7 @@ export class UsersService {
   }
 
   async initializeDatabase() {
-    try {
-      console.log('🔧 Initializing database with default data...');
-      
+    try {      
       // Check if admin user exists
       const { data: existingAdmin, error: checkError } = await this.supabase
         .from('users')

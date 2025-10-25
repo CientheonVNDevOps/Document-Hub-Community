@@ -18,8 +18,8 @@ export class NotesController {
   // Note endpoints
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('admin')
-  @ApiOperation({ summary: 'Create a new note (Admin only)' })
+  @Roles('admin', 'manager', 'user')
+  @ApiOperation({ summary: 'Create a new note (All roles in development)' })
   @ApiResponse({ status: 201, description: 'Note created successfully' })
   createNote(@Request() req, @Body() createNoteDto: CreateNoteDto) {
     return this.notesService.createNote(req.user.userId, createNoteDto, req.user.role);
@@ -41,13 +41,19 @@ export class NotesController {
     return this.notesService.searchNotes(req.user.userId, query, req.user.role);
   }
 
+  @Get('folder-tree')
+  @ApiOperation({ summary: 'Get folder tree structure for navigation' })
+  @ApiResponse({ status: 200, description: 'Folder tree retrieved successfully' })
+  getFolderTree(@Request() req) {
+    return this.notesService.getFolderTree(req.user.userId, req.user.role);
+  }
+
   // Folder endpoints - moved before :id route to avoid conflicts
   @Get('folders')
-  @ApiOperation({ summary: 'Get all folders for the current user' })
-  @ApiQuery({ name: 'parentId', required: false, description: 'Filter by parent folder ID' })
+  @ApiOperation({ summary: 'Get all root folders for the current user' })
   @ApiResponse({ status: 200, description: 'Folders retrieved successfully' })
-  findAllFolders(@Request() req, @Query('parentId') parentId?: string) {
-    return this.notesService.findAllFolders(req.user.userId, parentId);
+  findAllFolders(@Request() req) {
+    return this.notesService.findAllFolders(req.user.userId);
   }
 
   @Get('folders/:id')
@@ -55,6 +61,21 @@ export class NotesController {
   @ApiResponse({ status: 200, description: 'Folder retrieved successfully' })
   findFolderById(@Request() req, @Param('id') id: string) {
     return this.notesService.findFolderById(id, req.user.userId);
+  }
+
+  // Trash endpoints - must be defined before :id routes to avoid conflicts
+  @Get('trash')
+  @ApiOperation({ summary: 'Get all notes in trash' })
+  @ApiResponse({ status: 200, description: 'Trash notes retrieved successfully' })
+  getTrashNotes(@Request() req) {
+    return this.notesService.getTrashNotes(req.user.userId, req.user.role);
+  }
+
+  @Delete('trash')
+  @ApiOperation({ summary: 'Empty trash (permanently delete all notes in trash)' })
+  @ApiResponse({ status: 200, description: 'Trash emptied successfully' })
+  emptyTrash(@Request() req) {
+    return this.notesService.emptyTrash(req.user.userId, req.user.role);
   }
 
   @Get(':id')
@@ -85,8 +106,8 @@ export class NotesController {
   // Folder endpoints
   @Post('folders')
   @UseGuards(RolesGuard)
-  @Roles('admin')
-  @ApiOperation({ summary: 'Create a new folder (Admin only)' })
+  @Roles('admin', 'manager')
+  @ApiOperation({ summary: 'Create a new folder (Admin and Manager only)' })
   @ApiResponse({ status: 201, description: 'Folder created successfully' })
   createFolder(@Request() req, @Body() createFolderDto: CreateFolderDto) {
     return this.notesService.createFolder(req.user.userId, createFolderDto, req.user.role);
@@ -139,5 +160,53 @@ export class NotesController {
   @ApiResponse({ status: 200, description: 'Sample data ensured' })
   ensureSampleData(@Request() req) {
     return this.notesService.ensureSampleData(req.user.userId);
+  }
+
+  // Rename endpoints
+  @Patch(':id/rename')
+  @UseGuards(RolesGuard)
+  @Roles('admin', 'manager')
+  @ApiOperation({ summary: 'Rename a note (Admin and Manager only)' })
+  @ApiResponse({ status: 200, description: 'Note renamed successfully' })
+  renameNote(@Request() req, @Param('id') id: string, @Body() body: { title: string }) {
+    return this.notesService.renameNote(id, req.user.userId, body.title, req.user.role);
+  }
+
+  @Patch('folders/:id/rename')
+  @UseGuards(RolesGuard)
+  @Roles('admin', 'manager')
+  @ApiOperation({ summary: 'Rename a folder (Admin and Manager only)' })
+  @ApiResponse({ status: 200, description: 'Folder renamed successfully' })
+  renameFolder(@Request() req, @Param('id') id: string, @Body() body: { name: string }) {
+    return this.notesService.renameFolder(id, req.user.userId, body.name, req.user.role);
+  }
+
+  // All Notes endpoints
+  @Get('all-notes')
+  @ApiOperation({ summary: 'Get all notes with folder information for All Notes view' })
+  @ApiResponse({ status: 200, description: 'All notes with folders retrieved successfully' })
+  getAllNotesWithFolders(@Request() req) {
+    return this.notesService.getAllNotesWithFolders(req.user.userId, req.user.role);
+  }
+
+  @Get('folders/:id/contents')
+  @ApiOperation({ summary: 'Get folder contents (notes and subfolders)' })
+  @ApiResponse({ status: 200, description: 'Folder contents retrieved successfully' })
+  getFolderContents(@Request() req, @Param('id') id: string) {
+    return this.notesService.getFolderContents(id, req.user.userId, req.user.role);
+  }
+
+  @Patch(':id/trash')
+  @ApiOperation({ summary: 'Move note to trash' })
+  @ApiResponse({ status: 200, description: 'Note moved to trash successfully' })
+  moveToTrash(@Request() req, @Param('id') id: string) {
+    return this.notesService.moveToTrash(id, req.user.userId, req.user.role);
+  }
+
+  @Patch(':id/recover')
+  @ApiOperation({ summary: 'Recover note from trash' })
+  @ApiResponse({ status: 200, description: 'Note recovered successfully' })
+  recoverNote(@Request() req, @Param('id') id: string) {
+    return this.notesService.recoverNote(id, req.user.userId, req.user.role);
   }
 }

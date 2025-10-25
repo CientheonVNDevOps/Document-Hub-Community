@@ -22,9 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
-    console.log('JWT Strategy - Validating payload:', payload);
-    
+  async validate(payload: JwtPayload) {    
     // Validate that payload.sub (user ID) is present and valid
     if (!payload.sub) {
       console.error('JWT Strategy - Missing user ID in payload');

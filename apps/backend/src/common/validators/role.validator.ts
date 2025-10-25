@@ -59,12 +59,17 @@ export class RoleValidator {
   }
 
   /**
-   * Validates if user can create notes (admin only)
+   * Validates if user can create notes (manager and admin)
    * @param userRole - The user's role
    * @param action - The action being performed
    */
   static validateNoteCreation(userRole: string, action: string): void {
-    this.validateAdminRole(userRole, action);
+    // For development, allow all roles to create notes
+    if (process.env.NODE_ENV === 'development') {
+      // Development mode: Allow note creation for role
+      return;
+    }
+    this.validateManagerOrAdminRole(userRole, action);
   }
 
   /**
@@ -86,12 +91,12 @@ export class RoleValidator {
   }
 
   /**
-   * Validates if user can manage folders (admin only for create/delete, manager+admin for update)
+   * Validates if user can manage folders (manager and admin for create/update, admin only for delete)
    * @param userRole - The user's role
    * @param action - The action being performed
    */
   static validateFolderManagement(userRole: string, action: string): void {
-    this.validateAdminRole(userRole, action);
+    this.validateManagerOrAdminRole(userRole, action);
   }
 
   /**

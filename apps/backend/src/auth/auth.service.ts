@@ -39,9 +39,7 @@ export class AuthService {
   async login(user: any) {
     // Handle both name field and first_name/last_name fields
     const fullName = user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim();
-    
-    console.log('Login - User object:', { id: user.id, email: user.email, role: user.role });
-    
+        
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
