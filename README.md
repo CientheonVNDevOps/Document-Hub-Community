@@ -1,4 +1,4 @@
-# Note Taking Community App
+# Document Community Hub App
 
 A modern note-taking application built with React, NestJS, Supabase, and Redis. Features include tree folder structure, search functionality, versioning, and real-time collaboration.
 
@@ -210,5 +210,4 @@ For support and questions:
 ---
 
 Built with ❤️ using modern web technologies.
-# Taking-Note-Community-CientheonVN
 # Taking-Note-Community-CientheonVN
