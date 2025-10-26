@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import { notesService } from '@/services/notesService'
 import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
 import { Button } from '@/components/ui/button'
@@ -15,12 +18,13 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog'
-import { Save, Trash2, AlertTriangle } from 'lucide-react'
+import { Save, Trash2, AlertTriangle, Eye, Edit3 } from 'lucide-react'
 
 export const NotePage = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
+  const [viewMode, setViewMode] = useState<'preview' | 'source'>('preview')
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -49,6 +53,9 @@ export const NotePage = () => {
       queryClient.invalidateQueries({ queryKey: ['note', id] })
       queryClient.invalidateQueries({ queryKey: ['notes'] })
       setIsEditing(false)
+    },
+    onError: (error) => {
+      console.error('Failed to update note:', error)
     }
   })
 
@@ -117,7 +124,10 @@ export const NotePage = () => {
                 <>
                   <Button
                     variant="outline"
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => {
+                      setIsEditing(false)
+                      setViewMode('preview')
+                    }}
                   >
                     Cancel
                   </Button>
@@ -130,7 +140,10 @@ export const NotePage = () => {
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setIsEditing(true)}>
+                <Button onClick={() => {
+                  setIsEditing(true)
+                  setViewMode('source')
+                }}>
                   Edit
                 </Button>
               )}
@@ -140,26 +153,100 @@ export const NotePage = () => {
 
           <div className="text-sm text-gray-500">
             Last updated: {new Date(note.updated_at).toLocaleString()}
-            {note.version > 1 && (
-              <span className="ml-2">• Version {note.version}</span>
+            {typeof note.version === 'number' && note.version >= 1 && (
+              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                Version {note.version}
+              </span>
             )}
           </div>
         </div>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-6 overflow-y-auto">
             {isEditing ? (
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="min-h-[400px] border-none shadow-none resize-none"
-                placeholder="Start writing your note..."
-              />
+              <div className="space-y-4">
+                {/* Markdown Editor Controls */}
+                <div className="flex items-center justify-between border-b pb-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-700">Markdown Editor</span>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant={viewMode === 'source' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setViewMode('source')}
+                        className="h-8 px-3"
+                      >
+                        <Edit3 className="h-3 w-3 mr-1" />
+                        Source
+                      </Button>
+                      <Button
+                        variant={viewMode === 'preview' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setViewMode('preview')}
+                        className="h-8 px-3"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Preview
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Supports GitHub Flavored Markdown
+                  </div>
+                </div>
+
+                {/* Editor Content */}
+                {viewMode === 'source' ? (
+                  <Textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="min-h-[400px] border-none shadow-none resize-none font-mono text-sm"
+                    placeholder="Start writing your note in Markdown...
+
+# Heading 1
+## Heading 2
+### Heading 3
+
+**Bold text** and *italic text*
+
+- List item 1
+- List item 2
+
+1. Numbered item 1
+2. Numbered item 2
+
+```javascript
+// Code block
+const example = 'Hello World';
+```
+
+> This is a blockquote
+
+[Link text](https://example.com)"
+                  />
+                ) : (
+                  <div className="min-h-[400px] border rounded-md p-4 bg-gray-50">
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        className="markdown-content"
+                      >
+                        {content || '*No content to preview*'}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="prose max-w-none">
-                <pre className="whitespace-pre-wrap font-sans">
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                  className="markdown-content"
+                >
                   {note.content}
-                </pre>
+                </ReactMarkdown>
               </div>
             )}
           </CardContent>
