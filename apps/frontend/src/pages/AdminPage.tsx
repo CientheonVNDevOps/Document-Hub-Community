@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import api from '@/services/api';
 import { UserManagement } from '@/components/features/UserManagement';
+import { VersionManagement } from '@/components/features/VersionManagement';
 
 interface ApprovalRequest {
   id: string;
@@ -176,6 +177,10 @@ export function AdminPage() {
         
         <TabsContent value="users">
           <UserManagement />
+        </TabsContent>
+        
+        <TabsContent value="versions">
+          <VersionManagement />
         </TabsContent>
       </Tabs>
 

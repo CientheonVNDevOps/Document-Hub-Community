@@ -21,6 +21,9 @@ export interface Folder {
   description?: string
   created_at: string
   updated_at: string
+  is_deleted?: boolean
+  deleted_at?: string
+  version_id?: string
 }
 
 export interface NoteVersion {
@@ -30,6 +33,24 @@ export interface NoteVersion {
   content: string
   version: number
   created_at: string
+}
+
+export interface CommunityVersion {
+  id: string
+  name: string
+  description?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateCommunityVersionData {
+  name: string
+  description?: string
+}
+
+export interface UpdateCommunityVersionData {
+  name?: string
+  description?: string
 }
 
 export interface CreateNoteData {
@@ -53,8 +74,10 @@ export interface CreateFolderData {
 
 export const notesService = {
   // Notes
-  async getNotes(folderId?: string): Promise<Note[]> {
-    const params = folderId ? { folderId } : {}
+  async getNotes(folderId?: string, versionId?: string): Promise<Note[]> {
+    const params: any = {}
+    if (folderId) params.folderId = folderId
+    if (versionId) params.versionId = versionId
     const response = await api.get('/notes', { params })
     return response.data || []
   },
@@ -100,8 +123,9 @@ export const notesService = {
   },
 
   // Folders
-  async getFolders(): Promise<Folder[]> {
-    const response = await api.get('/notes/folders')
+  async getFolders(versionId?: string): Promise<Folder[]> {
+    const params = versionId ? { versionId } : {}
+    const response = await api.get('/notes/folders', { params })
     return response.data || []
   },
 
@@ -238,8 +262,9 @@ export const notesService = {
   },
 
   // Trash functionality
-  async getTrashNotes(): Promise<Note[]> {
-    const response = await api.get('/notes/trash')
+  async getTrashNotes(versionId?: string): Promise<Note[]> {
+    const params = versionId ? `?versionId=${versionId}` : ''
+    const response = await api.get(`/notes/trash${params}`)
     return response.data || []
   },
 
@@ -253,8 +278,67 @@ export const notesService = {
     return response.data
   },
 
-  async emptyTrash(): Promise<{ message: string }> {
-    const response = await api.delete('/notes/trash')
+  async emptyTrash(versionId?: string): Promise<{ message: string }> {
+    const params = versionId ? `?versionId=${versionId}` : ''
+    const response = await api.delete(`/notes/trash${params}`)
+    return response.data
+  },
+
+  // Folder trash functionality
+  async getTrashFolders(versionId?: string): Promise<Folder[]> {
+    const params = versionId ? `?versionId=${versionId}` : ''
+    const response = await api.get(`/notes/trash/folders${params}`)
+    return response.data || []
+  },
+
+  async recoverFolder(folderId: string): Promise<Folder> {
+    const response = await api.patch(`/notes/folders/${folderId}/recover`)
+    return response.data
+  },
+
+  async recoverAllFromTrash(versionId?: string): Promise<{ message: string; recoveredNotes: number; recoveredFolders: number }> {
+    const params = versionId ? `?versionId=${versionId}` : ''
+    const response = await api.patch(`/notes/trash/recover-all${params}`)
+    return response.data
+  },
+
+  // Community Version Management
+  async getAllCommunityVersions(): Promise<CommunityVersion[]> {
+    const response = await api.get('/notes/versions')
+    return response.data || []
+  },
+
+
+  async createCommunityVersion(data: CreateCommunityVersionData): Promise<CommunityVersion> {
+    const response = await api.post('/notes/versions', data)
+    return response.data
+  },
+
+  async updateCommunityVersion(id: string, data: UpdateCommunityVersionData): Promise<CommunityVersion> {
+    const response = await api.patch(`/notes/versions/${id}`, data)
+    return response.data
+  },
+
+  async deleteCommunityVersion(id: string): Promise<{ message: string }> {
+    const response = await api.delete(`/notes/versions/${id}`)
+    return response.data
+  },
+
+  async getNotesByVersion(versionId: string): Promise<Note[]> {
+    const response = await api.get(`/notes/versions/${versionId}/notes`)
+    return response.data || []
+  },
+
+  async getFoldersByVersion(versionId: string): Promise<Folder[]> {
+    const response = await api.get(`/notes/versions/${versionId}/folders`)
+    return response.data || []
+  },
+
+  async migrateContentToVersion(sourceVersionId: string, targetVersionId: string): Promise<{ message: string }> {
+    const response = await api.post('/notes/versions/migrate', {
+      sourceVersionId,
+      targetVersionId,
+    })
     return response.data
   },
 }

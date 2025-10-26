@@ -26,8 +26,10 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/auth/AuthProvider'
-import { notesService, Note } from '@/services/notesService'
+import { useVersion } from '@/contexts/VersionContext'
+import { notesService, Note, Folder } from '@/services/notesService'
 import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
+import { VersionDropdown } from '@/components/ui/dropdown-version'
 
 interface SidebarProps {
   isOpen: boolean
@@ -47,9 +49,13 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   // Rename states
   const [editingItem, setEditingItem] = useState<{ type: 'folder' | 'note', id: string } | null>(null)
   const [editName, setEditName] = useState('')
+  
+  // Use shared version context
+  const { currentVersion, setCurrentVersion } = useVersion()
+  
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const { addToTrashOptimistically } = useTrashOptimisticUpdate()
+  const { addToTrashOptimistically, addFolderToTrashOptimistically } = useTrashOptimisticUpdate()
 
   // Move to trash functionality with optimistic updates
   const handleMoveToTrash = async (noteId: string) => {
@@ -70,8 +76,8 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       await notesService.moveToTrash(noteId)
       
       // Invalidate caches to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
-      queryClient.invalidateQueries({ queryKey: ['trash-notes'] })
+      queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['trash-notes', currentVersion?.id] })
     } catch (error) {
       console.error('Failed to move note to trash:', error)
       // Revert optimistic update on error - React Query will handle this automatically
@@ -83,39 +89,101 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
 
   // Move folder to trash functionality
   const handleMoveFolderToTrash = async (folderId: string) => {
+    let folderToMove: Folder | undefined
+
     try {
-      await notesService.deleteFolder(folderId)
+      // Find the folder to move for optimistic updates
+      folderToMove = foldersData.find(folder => folder.id === folderId)
+      
+      // Optimistic update: Remove from folders cache immediately
+      if (folderToMove) {
+        queryClient.setQueryData(['folders', currentVersion?.id], (oldData: Folder[] = []) => 
+          oldData.filter(folder => folder.id !== folderId)
+        )
+        
+        // Add to trash folders cache optimistically using the hook
+        addFolderToTrashOptimistically(folderToMove)
+      }
+
+      // Perform the actual API call
+      const result = await notesService.deleteFolder(folderId)
+      
+      // Show success message
+      if (result.message) {
+        console.log(result.message)
+      }
       
       // Invalidate caches to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['folders'] })
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
+      queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['trash-folders', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['trash-notes', currentVersion?.id] })
     } catch (error) {
       console.error('Failed to move folder to trash:', error)
+      
+      // Show user-friendly error message
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any
+        if (axiosError.response?.status === 403) {
+          const errorMessage = axiosError.response?.data?.message || 'Cannot delete folder with contents'
+          alert(`Error: ${errorMessage}`)
+        } else {
+          alert('Failed to delete folder. Please try again.')
+        }
+      } else {
+        alert('Failed to delete folder. Please try again.')
+      }
+      
+      // Revert optimistic update on error
+      if (folderToMove) {
+        queryClient.setQueryData(['folders', currentVersion?.id], (oldData: Folder[] = []) => 
+          [...oldData, folderToMove]
+        )
+        // Remove from trash folders cache
+        queryClient.setQueryData(['trash-folders', currentVersion?.id], (oldData: Folder[] = []) => 
+          oldData.filter(folder => folder.id !== folderId)
+        )
+      }
+      
+      // React Query will refetch and restore the correct state
+      queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['trash-folders', currentVersion?.id] })
     }
   }
 
   // Get folders and notes using React Query for better caching
   const { data: foldersData = [], isLoading: foldersLoading } = useQuery({
-    queryKey: ['folders'],
-    queryFn: () => notesService.getFolders(),
+    queryKey: ['folders', currentVersion?.id],
+    queryFn: () => notesService.getFolders(currentVersion?.id),
     retry: 1,
     refetchOnWindowFocus: false
   })
 
   const { data: notesData = [], isLoading: notesLoading } = useQuery({
-    queryKey: ['notes'],
-    queryFn: () => notesService.getNotes(),
+    queryKey: ['notes', currentVersion?.id],
+    queryFn: () => notesService.getNotes(undefined, currentVersion?.id),
     retry: 1,
     refetchOnWindowFocus: false
   })
 
-  // Get trash notes count using React Query
+  // Get trash notes count using React Query - filtered by current version
   const { data: trashNotes = [] } = useQuery({
-    queryKey: ['trash-notes'],
-    queryFn: () => notesService.getTrashNotes(),
+    queryKey: ['trash-notes', currentVersion?.id],
+    queryFn: () => notesService.getTrashNotes(currentVersion?.id),
     retry: 1,
     refetchOnWindowFocus: false
   })
+
+  // Get trash folders count using React Query - filtered by current version
+  const { data: trashFolders = [] } = useQuery({
+    queryKey: ['trash-folders', currentVersion?.id],
+    queryFn: () => notesService.getTrashFolders(currentVersion?.id),
+    retry: 1,
+    refetchOnWindowFocus: false
+  })
+
+  // Calculate total trash items count
+  const totalTrashItems = trashNotes.length + trashFolders.length
 
   // Use React Query data directly instead of local state
 
@@ -136,7 +204,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       })
 
       // Invalidate and refetch folders data
-      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
 
       // No subfolder support - only root folders
 
@@ -167,7 +235,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       })
 
       // Invalidate and refetch notes data
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
+      queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
 
       // Keep the parent folder open
       setExpandedFolders(prev =>
@@ -198,11 +266,11 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       if (editingItem.type === 'folder') {
         await notesService.renameFolder(editingItem.id, editName.trim())
         // Invalidate and refetch folders data
-        queryClient.invalidateQueries({ queryKey: ['folders'] })
+        queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
       } else {
         await notesService.renameNote(editingItem.id, editName.trim())
         // Invalidate and refetch notes data
-        queryClient.invalidateQueries({ queryKey: ['notes'] })
+        queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
       }
 
       setEditingItem(null)
@@ -263,9 +331,9 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
             {isOpen && (
               <div className="flex items-center justify-between w-full">
                 <span>Trash</span>
-                {trashNotes.length > 0 && (
+                {totalTrashItems > 0 && (
                   <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
-                    {trashNotes.length}
+                    {totalTrashItems}
                   </span>
                 )}
               </div>
@@ -275,24 +343,35 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       </div>
 
       {isOpen && (
-        <div className="pl-5 p-2 pb-4 space-y-2 max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-500">Community Folders</h3>
-            <div className="flex items-center gap-1">
-              {(user?.role === 'admin' || user?.role === 'manager') && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => openCreateFolderDialog()}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              )}
+        <div className="px-3 py-4 space-y-4 max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin">
+          {/* Version Dropdown */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-500">Community Version</h3>
+            <VersionDropdown 
+              currentVersion={currentVersion}
+              onVersionChange={setCurrentVersion}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-gray-500">Community Folders</h3>
+              <div className="flex items-center gap-1">
+                {(user?.role === 'admin' || user?.role === 'manager') && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => openCreateFolderDialog()}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2 max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-thin -ml-5">
+          <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto scrollbar-thin">
             {foldersLoading || notesLoading ? (
               <div className="flex items-center justify-center py-4">
                 <div className="text-sm text-gray-500">Loading...</div>
@@ -303,7 +382,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
               </div>
             ) : (
               rootFolders.map((folder) => (
-                <div key={folder.id}>
+                <div key={folder.id} className='max-w-full'>
                   <div className="flex items-center">
                     <Button
                       variant="ghost"

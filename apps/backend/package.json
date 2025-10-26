@@ -10,7 +10,7 @@
     "start": "NODE_NO_WARNINGS=1 bunx nest start",
     "start:dev": "NODE_NO_WARNINGS=1 bunx nest start --watch",
     "start:debug": "bunx nest start --debug --watch",
-    "start:prod": "node start-server.js",
+    "start:prod": "node dist/main.js",
     "dev": "NODE_NO_WARNINGS=1 bunx nest start --watch",
     "dev:no-cache": "bunx nest start --watch --webpack-config webpack.config.js",
     "lint": "bunx eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

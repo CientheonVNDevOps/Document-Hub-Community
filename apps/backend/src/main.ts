@@ -11,6 +11,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Set global prefix
+  app.setGlobalPrefix('api');
+
   // Enable CORS
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3003',
@@ -35,7 +38,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.PORT || 3003;
+  const port = process.env.PORT || 3002;
   await app.listen(port);
   console.log(`Backend server running on http://localhost:${port}`);
   console.log(`API Documentation available at http://localhost:${port}/api/docs`);

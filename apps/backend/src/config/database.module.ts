@@ -78,7 +78,18 @@ import { createClient } from '@supabase/supabase-js';
           };
         }
         
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          },
+          global: {
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+          }
+        });
         
         // Test connection and initialize database if needed
         try {

@@ -1,0 +1,57 @@
+version: '3.8'
+
+# Optimized Docker Compose for building with cache
+services:
+  # Backend build service
+  backend-build:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+      cache_from:
+        - lykny97/takingnote-backend:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: lykny97/takingnote-backend:latest
+    profiles:
+      - build
+
+  # Frontend build service
+  frontend-build:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+      cache_from:
+        - lykny97/takingnote-frontend:latest
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: lykny97/takingnote-frontend:latest
+    profiles:
+      - build
+
+  # Multi-platform build service
+  backend-multiarch:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      cache_from:
+        - lykny97/takingnote-backend:latest
+    image: lykny97/takingnote-backend:latest
+    profiles:
+      - multiarch
+
+  # Multi-platform frontend build
+  frontend-multiarch:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      cache_from:
+        - lykny97/takingnote-frontend:latest
+    image: lykny97/takingnote-frontend:latest
+    profiles:
+      - multiarch

@@ -1,5 +1,5 @@
 # Use the official Bun image
-FROM oven/bun:1 as base
+FROM oven/bun:1 AS base
 
 # Set working directory
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY . .
 RUN bun run build
 
 # Production stage
-FROM oven/bun:1-alpine as production
+FROM oven/bun:1-alpine AS production
 
 # Set working directory
 WORKDIR /app
@@ -31,12 +31,10 @@ RUN bun install --production
 # Copy built application from base stage
 COPY --from=base /app/dist ./dist
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nestjs -u 1001
-
-# Change ownership of the app directory
-RUN chown -R nestjs:nodejs /app
+# Create non-root user and set permissions
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001 && \
+    chown -R nestjs:nodejs /app
 USER nestjs
 
 # Expose port

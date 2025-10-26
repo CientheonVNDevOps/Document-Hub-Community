@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { notesService, Note, Folder } from '@/services/notesService'
 import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
+import { useVersion } from '@/contexts/VersionContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,6 +23,9 @@ export const DashboardPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { addToTrashOptimistically } = useTrashOptimisticUpdate()
+  
+  // Use shared version context
+  const { currentVersion } = useVersion()
   
   // Modal states
   const [isCreateNoteOpen, setIsCreateNoteOpen] = useState(false)
@@ -48,13 +52,13 @@ export const DashboardPage = () => {
   const [loading, setLoading] = useState(false)
 
   const { data: notes = [], isLoading } = useQuery({
-    queryKey: ['notes'],
-    queryFn: () => notesService.getNotes(),
+    queryKey: ['notes', currentVersion?.id],
+    queryFn: () => notesService.getNotes(undefined, currentVersion?.id),
   })
 
   const { data: folders = [] } = useQuery({
-    queryKey: ['folders'],
-    queryFn: () => notesService.getFolders(),
+    queryKey: ['folders', currentVersion?.id],
+    queryFn: () => notesService.getFolders(currentVersion?.id),
   })
 
   const { data: searchResults = [] } = useQuery({
@@ -76,9 +80,9 @@ export const DashboardPage = () => {
       }
       
       // Invalidate caches
-      queryClient.invalidateQueries({ queryKey: ['trash-notes'] })
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
-      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      queryClient.invalidateQueries({ queryKey: ['trash-notes', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
       
       setIsDeleteDialogOpen(false)
       setNoteToDelete(null)
@@ -104,8 +108,8 @@ export const DashboardPage = () => {
       setIsCreateNoteOpen(false)
       
       // Refresh data
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
-      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
     } catch (error) {
       console.error('Failed to create note:', error)
     } finally {
@@ -129,8 +133,8 @@ export const DashboardPage = () => {
       setIsCreateFolderOpen(false)
       
       // Refresh data
-      queryClient.invalidateQueries({ queryKey: ['folders'] })
-      queryClient.invalidateQueries({ queryKey: ['notes'] })
+      queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
+      queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
     } catch (error) {
       console.error('Failed to create folder:', error)
     } finally {
@@ -201,7 +205,7 @@ export const DashboardPage = () => {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Welcome back! Here's what's happening with your notes.</p>
+        <p className="text-gray-600">Welcome back! Here's what's happening with your notes.</p>      
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -4,6 +4,7 @@ import { NotesService } from './notes.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { CreateFolderDto } from './dto/create-folder.dto';
+import { CreateCommunityVersionDto, UpdateCommunityVersionDto } from './dto/community-version.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -21,16 +22,17 @@ export class NotesController {
   @Roles('admin', 'manager', 'user')
   @ApiOperation({ summary: 'Create a new note (All roles in development)' })
   @ApiResponse({ status: 201, description: 'Note created successfully' })
-  createNote(@Request() req, @Body() createNoteDto: CreateNoteDto) {
-    return this.notesService.createNote(req.user.userId, createNoteDto, req.user.role);
+  createNote(@Request() req, @Body() createNoteDto: CreateNoteDto, @Query('versionId') versionId?: string) {
+    return this.notesService.createNote(req.user.userId, createNoteDto, req.user.role, versionId);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all notes for the current user' })
   @ApiQuery({ name: 'folderId', required: false, description: 'Filter by folder ID' })
+  @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Notes retrieved successfully' })
-  findAllNotes(@Request() req, @Query('folderId') folderId?: string) {
-    return this.notesService.findAllNotes(req.user.userId, folderId, req.user.role);
+  findAllNotes(@Request() req, @Query('folderId') folderId?: string, @Query('versionId') versionId?: string) {
+    return this.notesService.findAllNotes(req.user.userId, folderId, req.user.role, versionId);
   }
 
   @Get('search')
@@ -51,9 +53,10 @@ export class NotesController {
   // Folder endpoints - moved before :id route to avoid conflicts
   @Get('folders')
   @ApiOperation({ summary: 'Get all root folders for the current user' })
+  @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Folders retrieved successfully' })
-  findAllFolders(@Request() req) {
-    return this.notesService.findAllFolders(req.user.userId);
+  findAllFolders(@Request() req, @Query('versionId') versionId?: string) {
+    return this.notesService.findAllFolders(req.user.userId, versionId);
   }
 
   @Get('folders/:id')
@@ -66,16 +69,107 @@ export class NotesController {
   // Trash endpoints - must be defined before :id routes to avoid conflicts
   @Get('trash')
   @ApiOperation({ summary: 'Get all notes in trash' })
+  @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Trash notes retrieved successfully' })
-  getTrashNotes(@Request() req) {
-    return this.notesService.getTrashNotes(req.user.userId, req.user.role);
+  getTrashNotes(@Request() req, @Query('versionId') versionId?: string) {
+    return this.notesService.getTrashNotes(req.user.userId, req.user.role, versionId);
   }
 
   @Delete('trash')
   @ApiOperation({ summary: 'Empty trash (permanently delete all notes in trash)' })
+  @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Trash emptied successfully' })
-  emptyTrash(@Request() req) {
-    return this.notesService.emptyTrash(req.user.userId, req.user.role);
+  emptyTrash(@Request() req, @Query('versionId') versionId?: string) {
+    return this.notesService.emptyTrash(req.user.userId, req.user.role, versionId);
+  }
+
+  @Get('trash/folders')
+  @ApiOperation({ summary: 'Get all folders in trash' })
+  @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
+  @ApiResponse({ status: 200, description: 'Trash folders retrieved successfully' })
+  getTrashFolders(@Request() req, @Query('versionId') versionId?: string) {
+    return this.notesService.getTrashFolders(req.user.userId, req.user.role, versionId);
+  }
+
+  @Patch('folders/:id/recover')
+  @ApiOperation({ summary: 'Recover folder from trash' })
+  @ApiResponse({ status: 200, description: 'Folder recovered successfully' })
+  recoverFolder(@Request() req, @Param('id') id: string) {
+    return this.notesService.recoverFolder(id, req.user.userId, req.user.role);
+  }
+
+  @Patch('trash/recover-all')
+  @ApiOperation({ summary: 'Recover all items from trash' })
+  @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
+  @ApiResponse({ status: 200, description: 'All items recovered successfully' })
+  recoverAllFromTrash(@Request() req, @Query('versionId') versionId?: string) {
+    return this.notesService.recoverAllFromTrash(req.user.userId, req.user.role, versionId);
+  }
+
+  // Test endpoint
+  @Get('test')
+  @ApiOperation({ summary: 'Test endpoint' })
+  @ApiResponse({ status: 200, description: 'Test successful' })
+  testEndpoint() {
+    return { message: 'Test endpoint working' };
+  }
+
+  // Community Version Management endpoints (must come before :id route)
+  @Get('versions')
+  @ApiOperation({ summary: 'Get all community versions' })
+  @ApiResponse({ status: 200, description: 'Community versions retrieved successfully' })
+  getAllCommunityVersions(@Request() req) {
+    return this.notesService.getAllCommunityVersions(req.user.role);
+  }
+
+  @Post('versions')
+  @UseGuards(RolesGuard)
+  @Roles('manager', 'admin')
+  @ApiOperation({ summary: 'Create a new community version (Manager and Admin only)' })
+  @ApiResponse({ status: 201, description: 'Community version created successfully' })
+  createCommunityVersion(@Request() req, @Body() createVersionDto: CreateCommunityVersionDto) {
+    return this.notesService.createCommunityVersion(req.user.userId, createVersionDto, req.user.role);
+  }
+
+  @Patch('versions/:id')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update a community version (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Community version updated successfully' })
+  updateCommunityVersion(@Request() req, @Param('id') id: string, @Body() updateVersionDto: UpdateCommunityVersionDto) {
+    return this.notesService.updateCommunityVersion(id, req.user.userId, updateVersionDto, req.user.role);
+  }
+
+  @Delete('versions/:id')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Delete a community version (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Community version deleted successfully' })
+  deleteCommunityVersion(@Request() req, @Param('id') id: string) {
+    return this.notesService.deleteCommunityVersion(id, req.user.userId, req.user.role);
+  }
+
+  @Get('versions/:id/notes')
+  @ApiOperation({ summary: 'Get notes by version' })
+  @ApiResponse({ status: 200, description: 'Notes retrieved successfully' })
+  getNotesByVersion(@Request() req, @Param('id') id: string) {
+    return this.notesService.getNotesByVersion(id, req.user.userId, req.user.role);
+  }
+
+  @Get('versions/:id/folders')
+  @ApiOperation({ summary: 'Get folders by version' })
+  @ApiResponse({ status: 200, description: 'Folders retrieved successfully' })
+  getFoldersByVersion(@Request() req, @Param('id') id: string) {
+    return this.notesService.getFoldersByVersion(id, req.user.userId, req.user.role);
+  }
+
+  @Post('versions/migrate')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Migrate content between versions (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Content migrated successfully' })
+  migrateContentToVersion(@Request() req, @Body() body: { sourceVersionId: string, targetVersionId: string }) {
+    return this.notesService.migrateContentToVersion(body.sourceVersionId, body.targetVersionId, req.user.userId, req.user.role);
   }
 
   @Get(':id')
@@ -109,8 +203,8 @@ export class NotesController {
   @Roles('admin', 'manager')
   @ApiOperation({ summary: 'Create a new folder (Admin and Manager only)' })
   @ApiResponse({ status: 201, description: 'Folder created successfully' })
-  createFolder(@Request() req, @Body() createFolderDto: CreateFolderDto) {
-    return this.notesService.createFolder(req.user.userId, createFolderDto, req.user.role);
+  createFolder(@Request() req, @Body() createFolderDto: CreateFolderDto, @Query('versionId') versionId?: string) {
+    return this.notesService.createFolder(req.user.userId, createFolderDto, req.user.role, versionId);
   }
 
   @Patch('folders/:id')
@@ -209,4 +303,5 @@ export class NotesController {
   recoverNote(@Request() req, @Param('id') id: string) {
     return this.notesService.recoverNote(id, req.user.userId, req.user.role);
   }
+
 }

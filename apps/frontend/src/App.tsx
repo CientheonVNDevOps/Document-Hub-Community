@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/components/auth/AuthProvider'
+import { VersionProvider } from '@/contexts/VersionContext'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { Layout } from '@/components/layout/Layout'
 import { LoginPage } from '@/pages/LoginPage'
@@ -13,7 +14,8 @@ import { TrashPage } from './pages/TrashPage'
 function App() {
   return (
     <AuthProvider>
-      <Routes>
+      <VersionProvider>
+        <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
@@ -98,6 +100,7 @@ function App() {
         />
       </Routes>
       <Toaster />
+      </VersionProvider>
     </AuthProvider>
   )
 }
