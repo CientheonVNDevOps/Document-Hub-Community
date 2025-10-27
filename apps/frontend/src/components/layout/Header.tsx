@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Menu, Search, User, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { useDispatch } from 'react-redux'
 import { logout } from '@/store/slices/authSlice'
 import { useNavigate } from 'react-router-dom'
@@ -42,15 +41,22 @@ export const Header = ({ user, onMenuClick }: HeaderProps) => {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="hidden md:flex items-center space-x-2">
-            <Search className="h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search notes... (⌘K)"
-              className="w-64 cursor-pointer"
-              readOnly
-              onClick={() => setIsSearchOpen(true)}
-            />
-          </div>
+          <Button
+            variant="outline"
+            onClick={() => setIsSearchOpen(true)}
+            className="hidden md:flex items-center w-64 justify-between bg-gray-100/70 border-gray-200"
+          >
+            <div className="flex items-center">
+              <Search className="h-4 w-4 mr-2 text-gray-600" />
+              <span className="font-normal text-gray-600">Search notes...</span>
+            </div>
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-white px-1.5 font-mono text-[10px] font-medium opacity-100">
+              <span className="text-xs">
+                {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}
+              </span>
+              K
+            </kbd>
+          </Button>
         </div>
         
         <div className="flex items-center space-x-4"> 
