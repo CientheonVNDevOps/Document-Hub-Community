@@ -247,6 +247,55 @@ export class NotesController {
     return this.notesService.migrateContentToVersion(body.sourceVersionId, body.targetVersionId, req.user.userId, req.user.role);
   }
 
+  // Note-specific sub-route endpoints (MUST come before generic :id route)
+  @Get(':id/versions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get version history for a note' })
+  @ApiResponse({ status: 200, description: 'Version history retrieved successfully' })
+  getNoteVersions(@Request() req, @Param('id') id: string) {
+    return this.notesService.getNoteVersions(id, req.user.userId, req.user.role);
+  }
+
+  @Post(':id/versions/:versionId/restore')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'manager')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Restore a specific version of a note (Admin and Manager only)' })
+  @ApiResponse({ status: 200, description: 'Version restored successfully' })
+  restoreNoteVersion(@Request() req, @Param('id') id: string, @Param('versionId') versionId: string) {
+    return this.notesService.restoreNoteVersion(id, versionId, req.user.userId, req.user.role);
+  }
+
+  @Patch(':id/rename')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'manager')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Rename a note (Admin and Manager only)' })
+  @ApiResponse({ status: 200, description: 'Note renamed successfully' })
+  renameNote(@Request() req, @Param('id') id: string, @Body() body: { title: string }) {
+    return this.notesService.renameNote(id, req.user.userId, body.title, req.user.role);
+  }
+
+  @Patch(':id/trash')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Move note to trash' })
+  @ApiResponse({ status: 200, description: 'Note moved to trash successfully' })
+  moveToTrash(@Request() req, @Param('id') id: string) {
+    return this.notesService.moveToTrash(id, req.user.userId, req.user.role);
+  }
+
+  @Patch(':id/recover')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Recover note from trash' })
+  @ApiResponse({ status: 200, description: 'Note recovered successfully' })
+  recoverNote(@Request() req, @Param('id') id: string) {
+    return this.notesService.recoverNote(id, req.user.userId, req.user.role);
+  }
+
+  // Generic note routes (MUST come after specific routes)
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -307,37 +356,7 @@ export class NotesController {
     return this.notesService.deleteFolder(id, req.user.userId, req.user.role);
   }
 
-  // Version endpoints
-  @Get(':id/versions')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get version history for a note' })
-  @ApiResponse({ status: 200, description: 'Version history retrieved successfully' })
-  getNoteVersions(@Request() req, @Param('id') id: string) {
-    return this.notesService.getNoteVersions(id, req.user.userId, req.user.role);
-  }
-
-  @Post(':id/versions/:versionId/restore')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'manager')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Restore a specific version of a note (Admin and Manager only)' })
-  @ApiResponse({ status: 200, description: 'Version restored successfully' })
-  restoreNoteVersion(@Request() req, @Param('id') id: string, @Param('versionId') versionId: string) {
-    return this.notesService.restoreNoteVersion(id, versionId, req.user.userId, req.user.role);
-  }
-
-  // Rename endpoints
-  @Patch(':id/rename')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'manager')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Rename a note (Admin and Manager only)' })
-  @ApiResponse({ status: 200, description: 'Note renamed successfully' })
-  renameNote(@Request() req, @Param('id') id: string, @Body() body: { title: string }) {
-    return this.notesService.renameNote(id, req.user.userId, body.title, req.user.role);
-  }
-
+  // Rename folder endpoint
   @Patch('folders/:id/rename')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'manager')
@@ -365,24 +384,6 @@ export class NotesController {
   @ApiResponse({ status: 200, description: 'Folder contents retrieved successfully' })
   getFolderContents(@Request() req, @Param('id') id: string) {
     return this.notesService.getFolderContents(id, req.user.userId, req.user.role);
-  }
-
-  @Patch(':id/trash')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Move note to trash' })
-  @ApiResponse({ status: 200, description: 'Note moved to trash successfully' })
-  moveToTrash(@Request() req, @Param('id') id: string) {
-    return this.notesService.moveToTrash(id, req.user.userId, req.user.role);
-  }
-
-  @Patch(':id/recover')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Recover note from trash' })
-  @ApiResponse({ status: 200, description: 'Note recovered successfully' })
-  recoverNote(@Request() req, @Param('id') id: string) {
-    return this.notesService.recoverNote(id, req.user.userId, req.user.role);
   }
 
 }
