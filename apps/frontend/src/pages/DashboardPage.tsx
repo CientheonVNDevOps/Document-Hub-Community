@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { notesService, Note, Folder } from '@/services/notesService'
 import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
 import { useVersion } from '@/contexts/VersionContext'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeHighlight from 'rehype-highlight'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -54,11 +57,15 @@ export const DashboardPage = () => {
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ['notes', currentVersion?.id],
     queryFn: () => notesService.getNotes(undefined, currentVersion?.id),
+    retry: 1,
+    refetchOnWindowFocus: false
   })
 
   const { data: folders = [] } = useQuery({
     queryKey: ['folders', currentVersion?.id],
     queryFn: () => notesService.getFolders(currentVersion?.id),
+    retry: 1,
+    refetchOnWindowFocus: false
   })
 
   const { data: searchResults = [] } = useQuery({
@@ -99,7 +106,7 @@ export const DashboardPage = () => {
         title: newNoteTitle.trim(),
         content: newNoteContent.trim(),
         folder_id: newNoteFolderId || undefined
-      })
+      }, currentVersion?.id)
       
       // Reset form and close modal
       setNewNoteTitle('')
@@ -108,6 +115,7 @@ export const DashboardPage = () => {
       setIsCreateNoteOpen(false)
       
       // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
       queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
       queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
     } catch (error) {
@@ -125,7 +133,7 @@ export const DashboardPage = () => {
       await notesService.createFolder({
         name: newFolderName.trim(),
         description: newFolderDescription.trim() || undefined
-      })
+      }, currentVersion?.id)
       
       // Reset form and close modal
       setNewFolderName('')
@@ -133,6 +141,7 @@ export const DashboardPage = () => {
       setIsCreateFolderOpen(false)
       
       // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
       queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
       queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
     } catch (error) {
@@ -367,11 +376,11 @@ export const DashboardPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {folders.map((folder) => (
                   <div key={folder.id} className="p-4 border rounded hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <FolderIcon className="h-5 w-5 mr-3 text-blue-500" />
-                        <div>
-                          <div className="font-medium">{folder.name}</div>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start flex-1 min-w-0">
+                        <FolderIcon className="h-5 w-5 mr-3 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium line-clamp-2 break-words">{folder.name}</div>
                           <div className="text-sm text-gray-500">
                             {notes.filter(note => note.folder_id === folder.id).length} notes
                           </div>
@@ -382,6 +391,7 @@ export const DashboardPage = () => {
                         size="sm"
                         onClick={() => handleViewFolder(folder)}
                         disabled={loading}
+                        className="flex-shrink-0"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -520,12 +530,25 @@ export const DashboardPage = () => {
                   {selectedNote.updated_at !== selectedNote.created_at && (
                     <span> • Updated: {new Date(selectedNote.updated_at).toLocaleString()}</span>
                   )}
+                  {currentVersion && (
+                    <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      {currentVersion.name}
+                    </span>
+                  )}
                 </div>
-                <div className="prose max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-sm">
-                    {selectedNote.content}
-                  </pre>
-                </div>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="prose prose-sm max-w-none">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        className="markdown-content"
+                      >
+                        {selectedNote.content}
+                      </ReactMarkdown>
+                    </div>
+                  </CardContent>
+                </Card>
               </>
             )}
           </div>

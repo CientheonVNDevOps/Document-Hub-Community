@@ -201,9 +201,10 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
     try {
       await notesService.createFolder({
         name: newFolderName.trim()
-      })
+      }, currentVersion?.id)
 
       // Invalidate and refetch folders data
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
       queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
 
       // No subfolder support - only root folders
@@ -232,9 +233,10 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       await notesService.createNote({
         title: newFileName.trim(),
         folder_id: selectedFolderForFile
-      })
+      }, currentVersion?.id)
 
       // Invalidate and refetch notes data
+      queryClient.invalidateQueries({ queryKey: ['notes'] })
       queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
 
       // Keep the parent folder open
@@ -286,7 +288,10 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   }
 
   // Get root folders (no parent) - only 2 layers: folders and files
-  const rootFolders = foldersData.filter(folder => !folder.parent_id)
+  // Sort by updated_at in descending order (newest first)
+  const rootFolders = foldersData
+    .filter(folder => !folder.parent_id)
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
   return (
     <div className={cn(
@@ -346,7 +351,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
         <div className="px-3 py-4 space-y-4 max-h-[calc(100vh-220px)] overflow-y-auto scrollbar-thin">
           {/* Version Dropdown */}
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-500">Community Version</h3>
+            <h3 className="text-sm font-medium text-gray-500">Version</h3>
             <VersionDropdown 
               currentVersion={currentVersion}
               onVersionChange={setCurrentVersion}
@@ -355,7 +360,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
           
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-500">Community Folders</h3>
+              <h3 className="text-sm font-medium text-gray-500">Folders</h3>
               <div className="flex items-center gap-1">
                 {(user?.role === 'admin' || user?.role === 'manager') && (
                   <Button
@@ -383,37 +388,23 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
             ) : (
               rootFolders.map((folder) => (
                 <div key={folder.id} className='max-w-full'>
-                  <div className="flex items-center">
-                    <Button
-                      variant="ghost"
-                      className="flex-1 justify-start h-8"
-                      onClick={() => toggleFolder(folder.id)}
-                    >
-                      {expandedFolders.includes(folder.id) ? (
-                        <ChevronDown className="h-3 w-3 mr-1" />
-                      ) : (
-                        <ChevronRight className="h-3 w-3 mr-1" />
-                      )}
-                      <FolderIcon className="h-3 w-3 mr-1" />
-                      {editingItem?.type === 'folder' && editingItem.id === folder.id ? (
-                        <Input
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="h-auto text-sm"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleRename()
-                            if (e.key === 'Escape') cancelRename()
-                          }}
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        folder.name
-                      )}
-                    </Button>
-                    <div className="flex items-center ml-1">
-                      {editingItem?.type === 'folder' && editingItem.id === folder.id ? (
-                        <>
+                  <div className="flex items-center max-w-full gap-1">
+                    {editingItem?.type === 'folder' && editingItem.id === folder.id ? (
+                      <>
+                        <div className="flex-1 flex items-center h-8 min-w-0 px-0 bg-gray-50 rounded-md">
+                          <FolderIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <Input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="h-auto text-sm"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleRename()
+                              if (e.key === 'Escape') cancelRename()
+                            }}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="flex items-center flex-shrink-0 gap-0.5">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -430,9 +421,24 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                           >
                             <X className="h-3 w-3" />
                           </Button>
-                        </>
-                      ) : (
-                        <>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          variant="ghost"
+                          className="flex-1 justify-start h-8 min-w-0 px-0"
+                          onClick={() => toggleFolder(folder.id)}
+                        >
+                          {expandedFolders.includes(folder.id) ? (
+                            <ChevronDown className="h-3 w-3 mr-1 flex-shrink-0" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3 mr-1 flex-shrink-0" />
+                          )}
+                          <FolderIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="truncate flex-1 min-w-0">{folder.name}</span>
+                        </Button>
+                        <div className="flex items-center flex-shrink-0 gap-0.5">
                           {(user?.role === 'admin' || user?.role === 'manager') && (
                             <Button
                               variant="ghost"
@@ -463,84 +469,91 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           )}
-                        </>
-                      )}
-                    </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {expandedFolders.includes(folder.id) && (
                     <div className="ml-4 space-y-1">
                       {/* Files in this folder - 2 layers only */}
                        {(() => {
-                         const folderNotes = notesData.filter(note => note.folder_id === folder.id);
+                         // Sort notes by updated_at in descending order (newest first)
+                         const folderNotes = notesData
+                           .filter(note => note.folder_id === folder.id)
+                           .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+                         const isEditingCurrentNote = (noteId: string) => editingItem?.type === 'note' && editingItem.id === noteId;
                          return folderNotes.length === 0 ? (
                           <div className="text-xs text-gray-400 py-1 px-3">
                             No notes in this folder
                           </div>
                         ) : (
                           folderNotes.map((note) => (
-                            <div key={note.id} className="flex items-center">
-                              <Link
-                                to={`/dashboard/note/${note.id}`}
-                                className="flex-1 flex items-center h-7 text-sm px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors"
-                              >
-                                <FileText className="size-3 mr-2" />
-                                {editingItem?.type === 'note' && editingItem.id === note.id ? (
-                                  <Input
-                                    value={editName}
-                                    onChange={(e) => setEditName(e.target.value)}
-                                    className="h-5 text-sm"
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') handleRename()
-                                      if (e.key === 'Escape') cancelRename()
-                                    }}
-                                    autoFocus
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                ) : (
-                                  <span className="line-clamp-1">{note.title}</span>
-                                )}
-                              </Link>
-                              {editingItem?.type === 'note' && editingItem.id === note.id ? (
-                                <div className="flex items-center ml-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-4 w-4"
-                                    onClick={handleRename}
-                                  >
-                                    <Check className="h-2 w-2" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-4 w-4"
-                                    onClick={cancelRename}
-                                  >
-                                    <X className="h-2 w-2" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center ml-1">
-                                  {(user?.role === 'admin' || user?.role === 'manager') && (
+                            <div key={note.id} className="flex items-center max-w-full gap-1">
+                              {isEditingCurrentNote(note.id) ? (
+                                <>
+                                  <div className="flex-1 flex items-center h-7 text-sm px-3 py-1.5 rounded-md bg-gray-50 min-w-0">
+                                    <FileText className="size-3 mr-2 flex-shrink-0" />
+                                    <Input
+                                      value={editName}
+                                      onChange={(e) => setEditName(e.target.value)}
+                                      className="h-5 text-sm"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleRename()
+                                        if (e.key === 'Escape') cancelRename()
+                                      }}
+                                      autoFocus
+                                    />
+                                  </div>
+                                  <div className="flex items-center flex-shrink-0 gap-0.5">
                                     <Button
                                       variant="ghost"
                                       size="icon"
                                       className="h-4 w-4"
-                                      onClick={() => startRename('note', note.id, note.title)}
+                                      onClick={handleRename}
                                     >
-                                      <Edit2 className="h-2 w-2" />
+                                      <Check className="h-2 w-2" />
                                     </Button>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-4 w-4 text-red-500 hover:text-red-700"
-                                    onClick={() => handleMoveToTrash(note.id)}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4"
+                                      onClick={cancelRename}
+                                    >
+                                      <X className="h-2 w-2" />
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <Link
+                                    to={`/dashboard/note/${note.id}`}
+                                    className="flex-1 flex items-center h-7 text-sm px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors min-w-0"
                                   >
-                                    <Trash2 className="h-2 w-2" />
-                                  </Button>
-                                </div>
+                                    <FileText className="size-3 mr-2 flex-shrink-0" />
+                                    <span className="truncate flex-1 min-w-0">{note.title}</span>
+                                  </Link>
+                                  <div className="flex items-center flex-shrink-0 gap-0.5">
+                                    {(user?.role === 'admin' || user?.role === 'manager') && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4"
+                                        onClick={() => startRename('note', note.id, note.title)}
+                                      >
+                                        <Edit2 className="h-2 w-2" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4 text-red-500 hover:text-red-700"
+                                      onClick={() => handleMoveToTrash(note.id)}
+                                    >
+                                      <Trash2 className="h-2 w-2" />
+                                    </Button>
+                                  </div>
+                                </>
                               )}
                             </div>
                           ))

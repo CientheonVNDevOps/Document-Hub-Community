@@ -102,8 +102,9 @@ export const notesService = {
     return response.data
   },
 
-  async createNote(data: CreateNoteData): Promise<Note> {
-    const response = await api.post('/notes', data)
+  async createNote(data: CreateNoteData, versionId?: string): Promise<Note> {
+    const params = versionId ? { versionId } : {}
+    const response = await api.post('/notes', data, { params })
     return response.data
   },
 
@@ -134,8 +135,9 @@ export const notesService = {
     return response.data
   },
 
-  async createFolder(data: CreateFolderData): Promise<Folder> {
-    const response = await api.post('/notes/folders', data)
+  async createFolder(data: CreateFolderData, versionId?: string): Promise<Folder> {
+    const params = versionId ? { versionId } : {}
+    const response = await api.post('/notes/folders', data, { params })
     return response.data
   },
 

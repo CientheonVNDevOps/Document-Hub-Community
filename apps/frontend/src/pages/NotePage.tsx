@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
 import { notesService } from '@/services/notesService'
 import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
+import { useVersion } from '@/contexts/VersionContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -31,6 +32,7 @@ export const NotePage = () => {
 
   const queryClient = useQueryClient()
   const { addToTrashOptimistically } = useTrashOptimisticUpdate()
+  const { currentVersion } = useVersion()
 
   const { data: note, isLoading } = useQuery({
     queryKey: ['note', id],
@@ -51,7 +53,9 @@ export const NotePage = () => {
       notesService.updateNote(id!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['note', id] })
+      // Invalidate both versioned and non-versioned notes queries
       queryClient.invalidateQueries({ queryKey: ['notes'] })
+      queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
       setIsEditing(false)
     },
     onError: (error) => {
@@ -111,14 +115,14 @@ export const NotePage = () => {
                 <h1 className="text-2xl font-bold">{note.title}</h1>
               )}
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon"
                 onClick={() => setIsDeleteDialogOpen(true)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 bg-red-100"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="size-5" />
               </Button>
               {isEditing ? (
                 <>
@@ -153,9 +157,9 @@ export const NotePage = () => {
 
           <div className="text-sm text-gray-500">
             Last updated: {new Date(note.updated_at).toLocaleString()}
-            {typeof note.version === 'number' && note.version >= 1 && (
+            {currentVersion && (
               <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                Version {note.version}
+                {currentVersion.name}
               </span>
             )}
           </div>
