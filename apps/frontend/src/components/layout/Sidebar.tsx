@@ -299,40 +299,46 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       isOpen ? "w-[350px]" : "w-16"
     )}>
       <div className="p-3">
-        <div className="flex items-center justify-between mb-4">
+        <div className={cn("flex items-center mb-4", isOpen ? "justify-between" : "justify-center")}>
           {isOpen &&
             <div className="flex items-center justify-center gap-x-2">
               <img src="/vite.png" alt="Document Hub Cientheon" width={30} height={30} />
               <h2 className="text-lg font-semibold">Document Hub Cientheon</h2>
             </div>
           }
-          <Button variant="ghost" size="icon" onClick={onToggle}>
-            <ChevronRight className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={onToggle} className={cn("transition-all", !isOpen ? "h-12 w-12" : "h-10 w-10")}>
+            <ChevronRight className={cn("transition-transform", !isOpen ? "h-6 w-6" : "h-6 w-6")} />
           </Button>
         </div>
 
         <div className="space-y-2">
           <Link
             to="/dashboard"
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            className={cn("flex items-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors", 
+              isOpen ? "w-full px-3 py-2" : "justify-center w-full py-3"
+            )}
           >
-            <FileText className="w-4 h-4 mr-2" />
+            <FileText className={cn("transition-all", !isOpen ? "w-6 h-6" : "w-4 h-4 mr-2")} />
             {isOpen && "Dashboard"}
           </Link>
           {user?.role === 'admin' && (
             <Link
               to="/dashboard/admin"
-              className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              className={cn("flex items-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors",
+                isOpen ? "w-full px-3 py-2" : "justify-center w-full py-3"
+              )}
             >
-              <Shield className="h-4 w-4 mr-2" />
+              <Shield className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-4 w-4 mr-2")} />
               {isOpen && "Admin Panel"}
             </Link>
           )}
           <Link
             to="/trash"
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            className={cn("flex items-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors",
+              isOpen ? "w-full px-3 py-2" : "justify-center w-full py-3"
+            )}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            <Trash2 className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-4 w-4 mr-2")} />
             {isOpen && (
               <div className="flex items-center justify-between w-full">
                 <span>Trash</span>
@@ -391,12 +397,12 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                   <div className="flex items-center max-w-full gap-1">
                     {editingItem?.type === 'folder' && editingItem.id === folder.id ? (
                       <>
-                        <div className="flex-1 flex items-center h-8 min-w-0 px-0 bg-gray-50 rounded-md">
+                        <div className="flex-1 flex items-center h-8 min-w-0 px-0 bg-gray-50 rounded-md text-left">
                           <FolderIcon className="h-3 w-3 mr-1 flex-shrink-0" />
                           <Input
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            className="h-auto text-sm"
+                            className="h-auto text-sm text-left"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') handleRename()
                               if (e.key === 'Escape') cancelRename()
@@ -427,7 +433,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                       <>
                         <Button
                           variant="ghost"
-                          className="flex-1 justify-start h-8 min-w-0 px-0"
+                          className="flex-1 h-8 min-w-0 px-0 justify-start text-left"
                           onClick={() => toggleFolder(folder.id)}
                         >
                           {expandedFolders.includes(folder.id) ? (
@@ -436,7 +442,7 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                             <ChevronRight className="h-3 w-3 mr-1 flex-shrink-0" />
                           )}
                           <FolderIcon className="h-3 w-3 mr-1 flex-shrink-0" />
-                          <span className="truncate flex-1 min-w-0">{folder.name}</span>
+                          <span className="truncate flex-1 min-w-0 text-left">{folder.name}</span>
                         </Button>
                         <div className="flex items-center flex-shrink-0 gap-0.5">
                           {(user?.role === 'admin' || user?.role === 'manager') && (
@@ -492,12 +498,12 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                             <div key={note.id} className="flex items-center max-w-full gap-1">
                               {isEditingCurrentNote(note.id) ? (
                                 <>
-                                  <div className="flex-1 flex items-center h-7 text-sm px-3 py-1.5 rounded-md bg-gray-50 min-w-0">
+                                  <div className="flex-1 flex items-center h-7 text-sm px-3 py-1.5 rounded-md bg-gray-50 min-w-0 text-left">
                                     <FileText className="size-3 mr-2 flex-shrink-0" />
                                     <Input
                                       value={editName}
                                       onChange={(e) => setEditName(e.target.value)}
-                                      className="h-5 text-sm"
+                                      className="h-5 text-sm text-left"
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleRename()
                                         if (e.key === 'Escape') cancelRename()
@@ -528,10 +534,10 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                                 <>
                                   <Link
                                     to={`/dashboard/note/${note.id}`}
-                                    className="flex-1 flex items-center h-7 text-sm px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors min-w-0"
+                                    className="flex-1 flex items-center h-7 text-sm px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors min-w-0 text-left"
                                   >
                                     <FileText className="size-3 mr-2 flex-shrink-0" />
-                                    <span className="truncate flex-1 min-w-0">{note.title}</span>
+                                    <span className="truncate flex-1 min-w-0 text-left">{note.title}</span>
                                   </Link>
                                   <div className="flex items-center flex-shrink-0 gap-0.5">
                                     {(user?.role === 'admin' || user?.role === 'manager') && (
