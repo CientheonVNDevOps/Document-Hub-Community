@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useToast } from '@/hooks/use-toast'
 
 export const RegisterPage = () => {
   const [name, setName] = useState('')
@@ -16,6 +17,7 @@ export const RegisterPage = () => {
   const dispatch = useDispatch<AppDispatch>()
   const navigate = useNavigate()
   const { isLoading, error } = useSelector((state: RootState) => state.auth)
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,9 +29,12 @@ export const RegisterPage = () => {
     
     try {
       const result = await dispatch(register({ name, email, password }) as any).unwrap()
-      // Show success message and redirect to login
-      alert(result.message || 'Registration request submitted successfully. You will be notified once an administrator reviews your request.')
-      navigate('/login')
+      // Show success toast and redirect to login
+      toast({
+        title: "Register account request send to the Admin",
+        description: result.message || 'You will be notified once an administrator reviews your request.',
+      })
+      setTimeout(() => navigate('/login'), 2000)
     } catch (error) {
       // Error is handled by the slice
     }

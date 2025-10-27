@@ -260,4 +260,10 @@ export const notesService = {
     })
     return response.data
   },
+
+  // Admin - Pending Approvals
+  async getPendingApprovals(): Promise<any[]> {
+    const response = await api.get('/admin/approvals/pending')
+    return response.data || []
+  },
 }

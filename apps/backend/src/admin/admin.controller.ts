@@ -33,7 +33,7 @@ export class AdminController {
     @Request() req: any
   ) {
     // Add the reviewer ID from the JWT token
-    updateDto.reviewedBy = req.user.sub;
+    updateDto.reviewedBy = req.user.userId;
     
     return await this.userApprovalService.updateRequestStatus(id, updateDto);
   }

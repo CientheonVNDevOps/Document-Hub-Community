@@ -182,6 +182,15 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
     refetchOnWindowFocus: false
   })
 
+  // Get pending approval requests count for admins
+  const { data: pendingApprovals = [] } = useQuery({
+    queryKey: ['pending-approvals'],
+    queryFn: () => notesService.getPendingApprovals(),
+    retry: 1,
+    refetchOnWindowFocus: false,
+    enabled: user?.role === 'admin' // Only fetch if user is admin
+  })
+
   // Calculate total trash items count
   const totalTrashItems = trashNotes.length + trashFolders.length
 
@@ -329,7 +338,16 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
               )}
             >
               <Shield className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-4 w-4 mr-2")} />
-              {isOpen && "Admin Panel"}
+              {isOpen && (
+                <div className="flex items-center justify-between w-full">
+                  <span>Admin Panel</span>
+                  {pendingApprovals.length > 0 && (
+                    <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">
+                      {pendingApprovals.length}
+                    </span>
+                  )}
+                </div>
+              )}
             </Link>
           )}
           <Link

@@ -75,9 +75,14 @@ END $$;
 -- Add RLS policies for user_approval_requests if they don't exist
 DO $$ 
 BEGIN
+    ALTER TABLE user_approval_requests ENABLE ROW LEVEL SECURITY;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_approval_requests' AND policyname = 'Anyone can create approval requests') THEN
+        CREATE POLICY "Anyone can create approval requests" ON user_approval_requests
+            FOR INSERT WITH CHECK (true);
+    END IF;
+    
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_approval_requests' AND policyname = 'Admins can view all approval requests') THEN
-        ALTER TABLE user_approval_requests ENABLE ROW LEVEL SECURITY;
-        
         CREATE POLICY "Admins can view all approval requests" ON user_approval_requests
             FOR SELECT USING (
                 EXISTS (
@@ -86,7 +91,9 @@ BEGIN
                     AND users.role = 'admin'
                 )
             );
+    END IF;
             
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_approval_requests' AND policyname = 'Admins can update approval requests') THEN
         CREATE POLICY "Admins can update approval requests" ON user_approval_requests
             FOR UPDATE USING (
                 EXISTS (

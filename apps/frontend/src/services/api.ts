@@ -29,7 +29,12 @@ api.interceptors.response.use(
   (error: any) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Only redirect to login if not already on a public page
+      const currentPath = window.location.pathname
+      const publicPaths = ['/login', '/register', '/docs']
+      if (!publicPaths.includes(currentPath) && !currentPath.startsWith('/docs')) {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }

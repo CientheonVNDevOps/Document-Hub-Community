@@ -1,8 +1,7 @@
-import { IsEnum, IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsString, IsOptional } from 'class-validator';
 
 export class UpdateApprovalDto {
   @IsEnum(['approved', 'rejected'])
-  @IsNotEmpty()
   status: 'approved' | 'rejected';
 
   @IsString()
@@ -10,6 +9,6 @@ export class UpdateApprovalDto {
   adminNotes?: string;
 
   @IsString()
-  @IsNotEmpty()
-  reviewedBy: string;
+  @IsOptional()
+  reviewedBy?: string;
 }

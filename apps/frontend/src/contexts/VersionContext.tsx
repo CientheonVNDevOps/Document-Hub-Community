@@ -2,6 +2,11 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useQuery } from '@tanstack/react-query'
 import { notesService, CommunityVersion } from '@/services/notesService'
 
+// Check if user is authenticated
+const isAuthenticated = () => {
+  return !!localStorage.getItem('token')
+}
+
 interface VersionContextType {
   currentVersion: CommunityVersion | undefined
   setCurrentVersion: (version: CommunityVersion | undefined) => void
@@ -26,21 +31,23 @@ interface VersionProviderProps {
 export const VersionProvider = ({ children }: VersionProviderProps) => {
   const [currentVersion, setCurrentVersion] = useState<CommunityVersion | undefined>(undefined)
   
-  // Load versions
-  const { data: versions = [], isLoading } = useQuery({
+  // Load versions only if authenticated
+  const { data: versions = [], isLoading } = useQuery<CommunityVersion[]>({
     queryKey: ['community-versions'],
     queryFn: () => notesService.getAllCommunityVersions(),
+    enabled: isAuthenticated(), // Only fetch if user is authenticated
+    retry: false,
   })
 
   // Set first version as current when versions load or update
   useEffect(() => {
     if (versions && versions.length > 0) {
       // If no current version is set, or if the current version is not in the updated list, update it
-      if (!currentVersion || !versions.find(v => v.id === currentVersion.id)) {
+      if (!currentVersion || !versions.find((v: CommunityVersion) => v.id === currentVersion.id)) {
         setCurrentVersion(versions[0])
       } else {
         // Update the current version with the latest data
-        const updatedCurrentVersion = versions.find(v => v.id === currentVersion.id)
+        const updatedCurrentVersion = versions.find((v: CommunityVersion) => v.id === currentVersion.id)
         if (updatedCurrentVersion) {
           setCurrentVersion(updatedCurrentVersion)
         }

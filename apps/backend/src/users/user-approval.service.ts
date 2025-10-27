@@ -11,7 +11,7 @@ export interface CreateUserApprovalRequestDto {
 export interface UpdateApprovalRequestDto {
   status: 'approved' | 'rejected';
   adminNotes?: string;
-  reviewedBy: string;
+  reviewedBy?: string;
 }
 
 @Injectable()
@@ -48,12 +48,18 @@ export class UserApprovalService {
     // Hash the password
     const hashedPassword = await bcrypt.hash(createDto.password, 10);
 
+    // Parse name into first_name and last_name
+    const nameParts = createDto.name.trim().split(/\s+/);
+    const first_name = nameParts[0] || '';
+    const last_name = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+
     // Create the approval request
     const { data, error } = await this.supabase
       .from('user_approval_requests')
       .insert([{
         email: createDto.email,
-        name: createDto.name,
+        first_name: first_name,
+        last_name: last_name,
         password: hashedPassword,
         status: 'pending',
       }])
@@ -73,6 +79,17 @@ export class UserApprovalService {
       );
     } catch (emailError) {
       console.error('Failed to send email notification:', emailError);
+      // Don't fail the request creation if email fails
+    }
+
+    // Send confirmation email to user
+    try {
+      await this.emailService.sendUserRegistrationConfirmation(
+        createDto.email,
+        createDto.name
+      );
+    } catch (emailError) {
+      console.error('Failed to send confirmation email to user:', emailError);
       // Don't fail the request creation if email fails
     }
 
@@ -127,12 +144,14 @@ export class UserApprovalService {
     }
 
     if (updateDto.status === 'approved') {
-      // Create the user account
+      // Create the user account using first_name and last_name
+      // Handle null values properly
       const { data: userData, error: userError } = await this.supabase
         .from('users')
         .insert([{
           email: request.email,
-          name: request.name,
+          first_name: request.first_name || '',
+          last_name: request.last_name || '',
           password: request.password,
           role: 'user',
           status: 'approved',
@@ -163,9 +182,11 @@ export class UserApprovalService {
 
       // Send approval notification
       try {
+        // Construct full name from first_name and last_name
+        const fullName = `${request.first_name || ''} ${request.last_name || ''}`.trim() || 'User';
         await this.emailService.sendApprovalNotification(
           request.email,
-          request.name,
+          fullName,
           true,
           updateDto.adminNotes
         );
@@ -199,9 +220,11 @@ export class UserApprovalService {
 
       // Send rejection notification
       try {
+        // Construct full name from first_name and last_name
+        const fullName = `${request.first_name || ''} ${request.last_name || ''}`.trim() || 'User';
         await this.emailService.sendApprovalNotification(
           request.email,
-          request.name,
+          fullName,
           false,
           updateDto.adminNotes
         );

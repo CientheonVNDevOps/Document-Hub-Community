@@ -144,6 +144,7 @@ ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE note_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE otp_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_approval_requests ENABLE ROW LEVEL SECURITY;
 
 -- Users can only see their own data
 CREATE POLICY "Users can view own profile" ON users
@@ -198,6 +199,27 @@ CREATE POLICY "Users can insert own otp codes" ON otp_codes
 CREATE POLICY "Users can update own otp codes" ON otp_codes
     FOR UPDATE USING (email = auth.jwt() ->> 'email');
 
+-- User approval requests policies
+CREATE POLICY "Anyone can create approval requests" ON user_approval_requests
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Admins can view all approval requests" ON user_approval_requests
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM users 
+            WHERE users.id::text = auth.uid()::text 
+            AND users.role = 'admin'
+        )
+    );
+
+CREATE POLICY "Admins can update approval requests" ON user_approval_requests
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM users 
+            WHERE users.id::text = auth.uid()::text 
+            AND users.role = 'admin'
+        )
+    );
 
 -- Create full-text search function
 CREATE OR REPLACE FUNCTION search_notes(search_query TEXT, user_uuid UUID)
