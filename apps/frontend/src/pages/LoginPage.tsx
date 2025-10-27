@@ -27,8 +27,8 @@ export const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
-      <div className="flex w-full max-w-7xl rounded-xl overflow-hidden shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center p-8 bg-gray-200">
+      <div className="flex w-full max-w-7xl rounded-2xl shadow-2xl overflow-hidden bg-white">
         {/* Left Section - Main Content */}
         <div 
           className="w-full lg:w-1/2 flex items-center justify-center p-8 relative"
