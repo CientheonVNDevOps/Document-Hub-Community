@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import { notesService, Note } from '@/services/notesService'
 import { 
   Dialog, 
@@ -11,31 +12,40 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { X } from 'lucide-react'
+import { Search, FileText, X, Tag } from 'lucide-react'
 
 interface SearchModalProps {
   isOpen: boolean
   onClose: () => void
+  // Optional props for custom behavior
+  searchService?: {
+    searchNotes: (query: string, versionId?: string) => Promise<Note[]>
+  }
+  onNoteSelect?: (note: Note) => void
+  versionId?: string
+  title?: string
+  description?: string
+  placeholder?: string
 }
 
-export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
+export const SearchModal = ({ 
+  isOpen, 
+  onClose, 
+  searchService = notesService,
+  onNoteSelect,
+  versionId,
+  title = "Search Notes",
+  description = "Search through all your notes. Type to find what you're looking for.",
+  placeholder = "Search notes..."
+}: SearchModalProps) => {
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
 
-  const { data: searchResults = [] } = useQuery({
-    queryKey: ['search', searchQuery],
-    queryFn: () => notesService.searchNotes(searchQuery),
+  const { data: searchResults = [], isLoading } = useQuery({
+    queryKey: ['search', searchQuery, versionId],
+    queryFn: () => searchService.searchNotes(searchQuery, versionId),
     enabled: searchQuery.length > 0,
   })
-
-  // Filter results to match search query
-  const filteredResults = searchQuery.trim() 
-    ? searchResults.filter(
-        note => 
-          note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          note.content.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : []
 
   // Focus the input when modal opens
   useEffect(() => {
@@ -62,7 +72,11 @@ export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
   }, [isOpen, onClose])
 
   const handleNoteClick = (note: Note) => {
-    navigate(`/note/${note.id}`)
+    if (onNoteSelect) {
+      onNoteSelect(note)
+    } else {
+      navigate(`/note/${note.id}`)
+    }
     onClose()
   }
 
@@ -74,9 +88,12 @@ export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>Search Notes</DialogTitle>
+          <DialogTitle className="flex items-center">
+            <Search className="h-5 w-5 mr-2" />
+            {title}
+          </DialogTitle>
           <DialogDescription>
-            Search through all notes and documentation
+            {description}
           </DialogDescription>
         </DialogHeader>
         
@@ -84,12 +101,10 @@ export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
           <div className="relative">
             <Input
               id="search-input"
-              type="text"
-              placeholder="Search notes..."
+              placeholder={placeholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
-              className="text-lg pr-10"
+              className="pr-10"
             />
             {searchQuery && (
               <Button
@@ -103,30 +118,66 @@ export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
             )}
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
-            {filteredResults.map((note) => (
-              <Button
-                key={note.id}
-                variant="ghost"
-                className="w-full justify-start text-left p-4 h-auto hover:bg-accent"
-                onClick={() => {
-                  handleNoteClick(note)
-                }}
-              >
-                <div className="flex flex-col items-start">
-                  <div className="font-medium text-sm">{note.title}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-md">
-                    {note.content.substring(0, 100)}...
+          {searchQuery.length > 0 && isLoading && (
+            <div className="text-sm text-gray-500 text-center py-8">
+              Searching...
+            </div>
+          )}
+
+          {searchQuery.length > 0 && !isLoading && searchResults.length === 0 && (
+            <div className="text-sm text-gray-500 text-center py-8">
+              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No notes found matching &quot;{searchQuery}&quot;</p>
+            </div>
+          )}
+
+          {searchResults.length > 0 && (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="text-sm font-medium text-gray-700 mb-2">
+                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+              </div>
+              {searchResults.map((note) => (
+                <div 
+                  key={note.id} 
+                  className="p-3 border rounded hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => handleNoteClick(note)}
+                >
+                  <div className="flex items-start space-x-3">
+                    <FileText className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="font-medium text-gray-900 truncate">
+                          {note.title}
+                        </div>
+                        {note.community_versions && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                            <Tag className="h-3 w-3 mr-1" />
+                            {note.community_versions.name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1 line-clamp-2 prose prose-sm max-w-none">
+                        <ReactMarkdown 
+                          remarkPlugins={[]}
+                          rehypePlugins={[]}
+                          components={{
+                            p: ({children}: any) => <span>{children}</span>,
+                            strong: ({children}: any) => <strong className="font-semibold">{children}</strong>,
+                            em: ({children}: any) => <em className="italic">{children}</em>,
+                          }}
+                        >
+                          {note.content.substring(0, 150) + (note.content.length > 150 ? '...' : '')}
+                        </ReactMarkdown>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Updated {new Date(note.updated_at).toLocaleDateString()}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </Button>
-            ))}
-            {searchQuery && filteredResults.length === 0 && (
-              <div className="px-4 py-8 text-center text-muted-foreground">
-                No results found for &quot;{searchQuery}&quot;
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t">

@@ -32,6 +32,11 @@ export interface Note {
     name: string
     description?: string
   }
+  community_versions?: {
+    id: string
+    name: string
+    description?: string
+  }
 }
 
 export interface Folder {
@@ -71,6 +76,15 @@ export const publicNotesService = {
     const params = versionId ? { versionId } : {}
     const response = await publicApi.get('/notes/public/folder-tree', { params })
     return response.data
+  },
+
+  async searchNotes(query: string, versionId?: string): Promise<Note[]> {
+    const params: any = { q: query }
+    if (versionId && versionId.trim() !== '') {
+      params.versionId = versionId
+    }
+    const response = await publicApi.get('/notes/public/search', { params })
+    return response.data || []
   },
 }
 

@@ -43,6 +43,15 @@ export class NotesController {
     return this.notesService.getAllFoldersPublic(versionId);
   }
 
+  @Get('public/search')
+  @ApiOperation({ summary: 'Search notes (public)' })
+  @ApiQuery({ name: 'q', required: false, description: 'Search query' })
+  @ApiQuery({ name: 'versionId', required: false, description: 'Filter by version ID' })
+  @ApiResponse({ status: 200, description: 'Search results retrieved successfully' })
+  async searchNotesPublic(@Query('q') query?: string, @Query('versionId') versionId?: string) {
+    return this.notesService.searchNotesPublic(query, versionId);
+  }
+
   @Get('public/:id')
   @ApiOperation({ summary: 'Get a specific note by ID (public)' })
   @ApiResponse({ status: 200, description: 'Note retrieved successfully' })

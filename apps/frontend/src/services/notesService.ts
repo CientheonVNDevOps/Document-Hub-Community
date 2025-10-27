@@ -12,6 +12,12 @@ export interface Note {
   updated_at: string
   is_deleted?: boolean
   deleted_at?: string
+  version_id?: string
+  community_versions?: {
+    id: string
+    name: string
+    description?: string
+  }
 }
 
 export interface Folder {

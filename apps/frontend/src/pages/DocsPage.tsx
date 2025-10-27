@@ -3,11 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
+import 'highlight.js/styles/github-dark.css'
 import { publicNotesService, Note, Folder, CommunityVersion } from '@/services/publicNotesService'
 import { Search, ChevronDown, ChevronRight, FileText, Folder as FolderIcon } from 'lucide-react'
 import { useSearchShortcut } from '@/hooks/useSearchShortcut'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -16,12 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+import { SearchModal } from '@/components/ui/search-modal'
 
 interface TocItem {
   id: string
@@ -34,7 +29,6 @@ export const DocsPage = () => {
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
 
   const { isLoading: versionsLoading, data: versions = [] } = useQuery({
     queryKey: ['public-versions'],
@@ -47,12 +41,6 @@ export const DocsPage = () => {
     enabled: !!selectedVersion?.id,
   })
 
-  const { data: notes = [] } = useQuery({
-    queryKey: ['public-notes', selectedVersion?.id],
-    queryFn: () => publicNotesService.getNotesByVersion(selectedVersion!.id),
-    enabled: !!selectedVersion?.id,
-  })
-
   // Set first version as default
   useEffect(() => {
     if (versions.length > 0 && !selectedVersion) {
@@ -62,17 +50,6 @@ export const DocsPage = () => {
 
   // Search shortcut (Command+K or Ctrl+K)
   useSearchShortcut(() => setSearchOpen(true))
-
-  // Filter notes based on search query
-  const filteredNotes = useMemo(() => {
-    if (!searchQuery.trim()) return notes
-    const query = searchQuery.toLowerCase()
-    return notes.filter(
-      note =>
-        note.title.toLowerCase().includes(query) ||
-        note.content.toLowerCase().includes(query)
-    )
-  }, [notes, searchQuery])
 
   // Generate TOC from markdown content
   const tocItems = useMemo(() => {
@@ -109,9 +86,8 @@ export const DocsPage = () => {
     })
   }
 
-  const handleNoteSelect = async (noteId: string) => {
+  const handleNoteSelect = async (note: Note) => {
     try {
-      const note = await publicNotesService.getNote(noteId)
       setSelectedNote(note)
     } catch (error) {
       console.error('Failed to load note:', error)
@@ -146,7 +122,7 @@ export const DocsPage = () => {
               <Button
                 key={note.id}
                 variant="ghost"
-                onClick={() => handleNoteSelect(note.id)}
+                onClick={() => handleNoteSelect(note)}
                 className={`flex items-center w-full px-3 py-2 text-sm justify-start ${
                   selectedNote?.id === note.id ? 'bg-accent text-accent-foreground font-medium' : ''
                 }`}
@@ -356,49 +332,16 @@ export const DocsPage = () => {
       </div>
 
       {/* Search Modal */}
-      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogTitle>Search Documentation</DialogTitle>
-          <DialogDescription>
-            Search through all notes and documentation
-          </DialogDescription>
-          <div className="space-y-4">
-            <Input
-              type="text"
-              placeholder="Search documentation..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              autoFocus
-              className="text-lg"
-            />
-            <div className="max-h-96 overflow-y-auto">
-              {filteredNotes.map(note => (
-                <Button
-                  key={note.id}
-                  variant="ghost"
-                  className="w-full justify-start text-left p-4 h-auto hover:bg-accent"
-                  onClick={() => {
-                    handleNoteSelect(note.id)
-                    setSearchOpen(false)
-                  }}
-                >
-                  <div className="flex flex-col items-start">
-                    <div className="font-medium text-sm">{note.title}</div>
-                    <div className="text-xs text-muted-foreground truncate max-w-md">
-                      {note.content.substring(0, 100)}...
-                    </div>
-                  </div>
-                </Button>
-              ))}
-              {searchQuery && filteredNotes.length === 0 && (
-                <div className="px-4 py-8 text-center text-muted-foreground">
-                  No results found for &quot;{searchQuery}&quot;
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        searchService={publicNotesService}
+        onNoteSelect={handleNoteSelect}
+        versionId={selectedVersion?.id}
+        title="Search Documentation"
+        description="Search through all documentation. Type to find what you're looking for."
+        placeholder="Search documentation..."
+      />
     </div>
   )
 }

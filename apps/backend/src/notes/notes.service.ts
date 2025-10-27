@@ -511,7 +511,14 @@ export class NotesService {
 
     let searchQuery = this.supabase
       .from('notes')
-      .select('*')
+      .select(`
+        *,
+        community_versions (
+          id,
+          name,
+          description
+        )
+      `)
       .eq('is_deleted', false) // Only search non-deleted notes
       .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
       .order('updated_at', { ascending: false });
@@ -1724,6 +1731,61 @@ export class NotesService {
     }
 
     return data;
+  }
+
+  async searchNotesPublic(query?: string, versionId?: string) {
+    if (!query || query.trim() === '') {
+      return [];
+    }
+
+    // Start with base filters
+    let searchQuery = this.supabase
+      .from('notes')
+      .select(`
+        *,
+        community_versions (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('is_deleted', false); // Only search non-deleted notes
+
+    // Apply version filter if provided
+    if (versionId && versionId.trim() !== '') {
+      this.validateUUID(versionId, 'Version ID');
+      searchQuery = searchQuery.eq('version_id', versionId);
+    } else {
+      // If no versionId provided, only search notes that belong to community versions
+      const { data: communityVersions, error: versionsError } = await this.supabase
+        .from('community_versions')
+        .select('id');
+
+      if (versionsError) {
+        throw new Error(`Failed to fetch community versions: ${versionsError.message}`);
+      }
+
+      const versionIds = communityVersions.map(v => v.id);
+      if (versionIds.length > 0) {
+        searchQuery = searchQuery.in('version_id', versionIds);
+      } else {
+        return []; // No community versions exist
+      }
+    }
+
+    // Then apply search filter
+    searchQuery = searchQuery.or(`title.ilike.%${query}%,content.ilike.%${query}%`);
+    
+    // Finally apply ordering
+    searchQuery = searchQuery.order('updated_at', { ascending: false });
+
+    const { data, error } = await searchQuery;
+
+    if (error) {
+      throw new Error(`Failed to search notes: ${error.message}`);
+    }
+
+    return data || [];
   }
 
   async getFolderTreePublic(versionId?: string) {
