@@ -102,9 +102,6 @@ export class NotesService {
       this.validateUUID(versionId, 'version ID');
     }
 
-    // Ensure sample data exists for the user
-    await this.ensureSampleData(userId);
-
     let query = this.supabase
       .from('notes')
       .select('*')
@@ -142,9 +139,6 @@ export class NotesService {
 
     // Validate UUID
     this.validateUUID(id, 'note ID');
-
-    // Ensure sample data exists for the user first
-    await this.ensureSampleData(userId);
 
     let query = this.supabase
       .from('notes')
@@ -268,9 +262,6 @@ export class NotesService {
     if (versionId && versionId !== 'undefined') {
       this.validateUUID(versionId, 'version ID');
     }
-
-    // Ensure sample data exists for the user
-    await this.ensureSampleData(userId);
 
     try {
       // First, check if the is_deleted column exists by trying a simple query
@@ -604,142 +595,6 @@ export class NotesService {
     return data;
   }
 
-  // Sample data creation for development with specific IDs
-  async createSampleData(userId: string) {
-    try {
-      
-      // Create sample folders with specific IDs that frontend expects
-      const { data: personalFolder, error: folder1Error } = await this.supabase
-        .from('folders')
-        .upsert([{
-          id: '550e8400-e29b-41d4-a716-446655440001',
-          name: 'Personal',
-          user_id: userId,
-          description: 'Personal notes and ideas'
-        }], { onConflict: 'id' })
-        .select()
-        .single();
-
-      if (folder1Error) {
-        console.warn('⚠️  Could not create personal folder:', folder1Error.message);
-      }
-
-      const { data: workFolder, error: folder2Error } = await this.supabase
-        .from('folders')
-        .upsert([{
-          id: '550e8400-e29b-41d4-a716-446655440002',
-          name: 'Work',
-          user_id: userId,
-          description: 'Work-related notes and projects'
-        }], { onConflict: 'id' })
-        .select()
-        .single();
-
-      if (folder2Error) {
-        console.warn('⚠️  Could not create work folder:', folder2Error.message);
-      }
-
-      const { data: projectsFolder, error: folder3Error } = await this.supabase
-        .from('folders')
-        .upsert([{
-          id: '550e8400-e29b-41d4-a716-446655440003',
-          name: 'Projects',
-          parent_id: '550e8400-e29b-41d4-a716-446655440002',
-          user_id: userId,
-          description: 'Project-related notes and documentation'
-        }], { onConflict: 'id' })
-        .select()
-        .single();
-
-      if (folder3Error) {
-        console.warn('⚠️  Could not create projects folder:', folder3Error.message);
-      }
-
-      // Create sample notes with specific IDs that frontend expects
-      const sampleNotes = [
-        {
-          id: '550e8400-e29b-41d4-a716-446655440011',
-          title: 'Meeting Notes',
-          content: 'Today we discussed the project timeline and upcoming deadlines. Key points:\n- Review design mockups\n- Prepare presentation\n- Schedule team meeting',
-          folder_id: '550e8400-e29b-41d4-a716-446655440002',
-          user_id: userId,
-          description: 'Notes from today\'s team meeting'
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440012',
-          title: 'Ideas',
-          content: 'Random ideas and thoughts:\n- New feature for the app\n- Blog post about productivity\n- Weekend project ideas',
-          folder_id: '550e8400-e29b-41d4-a716-446655440001',
-          user_id: userId,
-          description: 'Collection of random ideas'
-        },
-        {
-          id: '550e8400-e29b-41d4-a716-446655440013',
-          title: 'Project Plan',
-          content: 'Project planning and documentation:\n- Phase 1: Research and analysis\n- Phase 2: Design and prototyping\n- Phase 3: Development and testing\n- Phase 4: Launch and maintenance',
-          folder_id: '550e8400-e29b-41d4-a716-446655440003',
-          user_id: userId,
-          description: 'Main project planning document'
-        }
-      ];
-
-      const { data: notes, error: notesError } = await this.supabase
-        .from('notes')
-        .upsert(sampleNotes, { onConflict: 'id' })
-        .select();
-
-      if (notesError) {
-        console.warn('⚠️  Could not create sample notes:', notesError.message);
-      }
-
-      return { success: true, notesCreated: notes?.length || 0 };
-    } catch (error) {
-      console.error('❌ Failed to create sample data:', error);
-      throw new Error(`Failed to create sample data: ${error.message}`);
-    }
-  }
-
-  // Auto-initialize sample data for new users
-  async ensureSampleData(userId: string) {
-    try {
-      // Check if user already has any notes
-      const { data: existingNotes, error: checkError } = await this.supabase
-        .from('notes')
-        .select('id')
-        .eq('user_id', userId)
-        .limit(1);
-
-      if (checkError) {
-        console.warn('⚠️  Error checking existing notes:', checkError.message);
-        return;
-      }
-
-      // If user has no notes, create sample data
-      if (!existingNotes || existingNotes.length === 0) {
-        await this.createSampleData(userId);
-      } else {
-        // Check if the specific sample notes exist, if not create them
-        const { data: sampleNotes, error: sampleCheckError } = await this.supabase
-          .from('notes')
-          .select('id')
-          .eq('user_id', userId)
-          .in('id', [
-            '550e8400-e29b-41d4-a716-446655440011',
-            '550e8400-e29b-41d4-a716-446655440012',
-            '550e8400-e29b-41d4-a716-446655440013'
-          ]);
-
-        if (sampleCheckError) {
-          console.warn('⚠️  Error checking sample notes:', sampleCheckError.message);
-        } else if (!sampleNotes || sampleNotes.length < 3) {
-          await this.createSampleData(userId);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Failed to ensure sample data:', error);
-    }
-  }
-
   // Rename operations
   async renameNote(id: string, userId: string, newTitle: string, userRole?: string) {
     // Validate role - manager and admin can rename notes, but allow in development
@@ -810,9 +665,6 @@ export class NotesService {
     // Validate role - all roles can view notes
     RoleValidator.validateNoteAccess(userRole || 'user', 'view all notes');
 
-    // Ensure sample data exists for the user
-    await this.ensureSampleData(userId);
-
     let query = this.supabase
       .from('notes')
       .select(`
@@ -845,9 +697,6 @@ export class NotesService {
   async getFolderTree(userId: string, userRole?: string) {
     // Validate role - all roles can view folders
     RoleValidator.validateNoteAccess(userRole || 'user', 'view folder tree');
-
-    // Ensure sample data exists for the user
-    await this.ensureSampleData(userId);
 
     // Get all folders for the user
     const { data: folders, error: foldersError } = await this.supabase

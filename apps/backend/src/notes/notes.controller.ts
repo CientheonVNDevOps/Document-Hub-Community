@@ -318,24 +318,6 @@ export class NotesController {
     return this.notesService.restoreNoteVersion(id, versionId, req.user.userId, req.user.role);
   }
 
-  @Post('sample-data')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create sample data for development' })
-  @ApiResponse({ status: 201, description: 'Sample data created successfully' })
-  createSampleData(@Request() req) {
-    return this.notesService.createSampleData(req.user.userId);
-  }
-
-  @Post('ensure-sample-data')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Ensure sample data exists for current user' })
-  @ApiResponse({ status: 200, description: 'Sample data ensured' })
-  ensureSampleData(@Request() req) {
-    return this.notesService.ensureSampleData(req.user.userId);
-  }
-
   // Rename endpoints
   @Patch(':id/rename')
   @UseGuards(JwtAuthGuard, RolesGuard)

@@ -83,21 +83,6 @@ export const notesService = {
   },
 
   async getNote(id: string): Promise<Note> {
-    // Handle demo notes locally without making backend requests
-    if (id.startsWith('demo-note-')) {
-      return {
-        id: id,
-        title: 'Demo Note',
-        content: 'This is a demo note for testing purposes.',
-        folder_id: null,
-        user_id: 'demo-user',
-        description: 'Demo note',
-        version: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    }
-    
     const response = await api.get(`/notes/${id}`)
     return response.data
   },
@@ -180,82 +165,8 @@ export const notesService = {
   },
 
   async getFolderTree(): Promise<{ folders: any[] }> {
-    try {
-      const response = await api.get('/notes/folder-tree')
-      return response.data
-    } catch (error) {
-      // If authentication fails, return demo data
-      return {
-        folders: [
-          {
-            id: 'demo-folder-1',
-            name: 'Personal',
-            description: 'Personal notes and ideas',
-            user_id: 'demo-user',
-            parent_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            children: [],
-            notes: [
-              {
-                id: 'demo-note-1',
-                title: 'My Ideas',
-                content: 'Random ideas and thoughts:\n- New feature for the app\n- Blog post about productivity\n- Weekend project ideas',
-                folder_id: 'demo-folder-1',
-                user_id: 'demo-user',
-                description: 'Collection of random ideas',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }
-            ]
-          },
-          {
-            id: 'demo-folder-2',
-            name: 'Work',
-            description: 'Work-related notes and projects',
-            user_id: 'demo-user',
-            parent_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            children: [],
-            notes: [
-              {
-                id: 'demo-note-2',
-                title: 'Meeting Notes',
-                content: 'Today we discussed the project timeline and upcoming deadlines. Key points:\n- Review design mockups\n- Prepare presentation\n- Schedule team meeting',
-                folder_id: 'demo-folder-2',
-                user_id: 'demo-user',
-                description: 'Notes from today\'s team meeting',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }
-            ]
-          },
-          {
-            id: 'demo-folder-3',
-            name: 'Projects',
-            description: 'Project-related notes and documentation',
-            user_id: 'demo-user',
-            parent_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            children: [],
-            notes: [
-              {
-                id: 'demo-note-3',
-                title: 'Project Plan',
-                content: 'Project planning and documentation:\n- Phase 1: Research and analysis\n- Phase 2: Design and prototyping\n- Phase 3: Development and testing\n- Phase 4: Launch and maintenance',
-                folder_id: 'demo-folder-3',
-                user_id: 'demo-user',
-                description: 'Main project planning document',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }
-            ]
-          }
-        ],
-      }
-    }
+    const response = await api.get('/notes/folder-tree')
+    return response.data
   },
 
   async getFolderContents(folderId: string): Promise<{ subfolders: Folder[], notes: Note[] }> {
