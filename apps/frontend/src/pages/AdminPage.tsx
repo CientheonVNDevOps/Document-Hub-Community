@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ export function AdminPage() {
   const [adminNotes, setAdminNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     fetchRequests();
@@ -72,6 +74,10 @@ export function AdminPage() {
 
       setSelectedRequest(null);
       setAdminNotes('');
+      
+      // Invalidate the pending-approvals query to update the sidebar badge
+      queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
+      
       await fetchRequests();
     } catch (error) {
       console.error(`Error ${status}ing request:`, error);
@@ -145,7 +151,7 @@ export function AdminPage() {
                         <CardDescription>{request.email}</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
-                        {getStatusBadge(request.status)}
+                        {request.status === 'pending' && getStatusBadge(request.status)}
                         <Button
                           variant="outline"
                           size="sm"

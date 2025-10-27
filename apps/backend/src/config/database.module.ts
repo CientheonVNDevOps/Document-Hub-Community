@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js';
       provide: 'SUPABASE_CLIENT',
       useFactory: async (configService: ConfigService) => {
         const supabaseUrl = configService.get<string>('SUPABASE_URL');
-        const supabaseKey = configService.get<string>('SUPABASE_ANON_KEY');
+        const supabaseKey = configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') || configService.get<string>('SUPABASE_ANON_KEY');
         
         // For development, use local PostgreSQL if Supabase is not configured
         if (!supabaseUrl || !supabaseKey || supabaseUrl === 'mock_url') {
