@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Search, FileText, X } from 'lucide-react'
+import { X } from 'lucide-react'
 
 interface SearchModalProps {
   isOpen: boolean
@@ -27,6 +27,15 @@ export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
     queryFn: () => notesService.searchNotes(searchQuery),
     enabled: searchQuery.length > 0,
   })
+
+  // Filter results to match search query
+  const filteredResults = searchQuery.trim() 
+    ? searchResults.filter(
+        note => 
+          note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          note.content.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : []
 
   // Focus the input when modal opens
   useEffect(() => {
@@ -65,12 +74,9 @@ export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <Search className="h-5 w-5 mr-2" />
-            Search Notes
-          </DialogTitle>
+          <DialogTitle>Search Notes</DialogTitle>
           <DialogDescription>
-            Search through all your notes. Type to find what you're looking for.
+            Search through all notes and documentation
           </DialogDescription>
         </DialogHeader>
         
@@ -78,10 +84,12 @@ export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
           <div className="relative">
             <Input
               id="search-input"
+              type="text"
               placeholder="Search notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10"
+              autoFocus
+              className="text-lg pr-10"
             />
             {searchQuery && (
               <Button
@@ -95,43 +103,30 @@ export const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
             )}
           </div>
 
-          {searchQuery.length > 0 && searchResults.length === 0 && (
-            <div className="text-sm text-gray-500 text-center py-8">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No notes found matching "{searchQuery}"</p>
-            </div>
-          )}
-
-          {searchResults.length > 0 && (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              <div className="text-sm font-medium text-gray-700 mb-2">
-                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
-              </div>
-              {searchResults.map((note) => (
-                <div 
-                  key={note.id} 
-                  className="p-3 border rounded hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => handleNoteClick(note)}
-                >
-                  <div className="flex items-start space-x-3">
-                    <FileText className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 truncate">
-                        {note.title}
-                      </div>
-                      <div className="text-sm text-gray-500 mt-1 line-clamp-2">
-                        {note.content.substring(0, 150)}
-                        {note.content.length > 150 && '...'}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        Updated {new Date(note.updated_at).toLocaleDateString()}
-                      </div>
-                    </div>
+          <div className="max-h-96 overflow-y-auto">
+            {filteredResults.map((note) => (
+              <Button
+                key={note.id}
+                variant="ghost"
+                className="w-full justify-start text-left p-4 h-auto hover:bg-accent"
+                onClick={() => {
+                  handleNoteClick(note)
+                }}
+              >
+                <div className="flex flex-col items-start">
+                  <div className="font-medium text-sm">{note.title}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-md">
+                    {note.content.substring(0, 100)}...
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </Button>
+            ))}
+            {searchQuery && filteredResults.length === 0 && (
+              <div className="px-4 py-8 text-center text-muted-foreground">
+                No results found for &quot;{searchQuery}&quot;
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t">
