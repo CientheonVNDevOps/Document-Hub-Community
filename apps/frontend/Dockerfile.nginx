@@ -1,5 +1,5 @@
 # Frontend Dockerfile - Optimized with Nginx for production
-# Build with: docker buildx build --platform linux/amd64 -t your-registry/frontend:latest .
+# Build with: docker buildx build --platform linux/amd64 -f Dockerfile.nginx -t your-registry/frontend:latest .
 
 # Stage 1: Build stage with Bun
 FROM oven/bun:1-alpine AS builder
@@ -41,7 +41,12 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Environment variable for runtime URL replacement
 ENV VITE_API_URL=http://dc0kc00ko8cgo84k4ok4w0kw.72.60.41.15.sslip.io
 
-# Expose port 80 (nginx default)
+# Add health check script
+RUN echo '#!/bin/sh' > /health.sh && \
+    echo 'wget --no-verbose --tries=1 --spider http://localhost/health || exit 1' >> /health.sh && \
+    chmod +x /health.sh
+
+# Expose port
 EXPOSE 80
 
 # Health check
@@ -51,3 +56,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 # Use entrypoint to substitute API URL at runtime
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
+

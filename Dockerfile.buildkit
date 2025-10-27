@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1.4
+# This file enables BuildKit syntax features for optimization
+# Use with: docker buildx build --platform linux/amd64 -t your-image .
+
+# Backend Build Instructions:
+# cd apps/backend
+# docker buildx build --platform linux/amd64 -t takingnote-backend:latest .
+
+# Frontend Build Instructions:
+# cd apps/frontend
+# docker buildx build --platform linux/amd64 -t takingnote-frontend:latest .
+
+# Or use the helper script:
+# ./scripts/docker-build.sh [backend|frontend|both] [registry] [tag]
+

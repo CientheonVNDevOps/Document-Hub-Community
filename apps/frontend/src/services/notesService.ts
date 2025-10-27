@@ -170,8 +170,9 @@ export const notesService = {
     return response.data
   },
 
-  async getFolderTree(): Promise<{ folders: any[] }> {
-    const response = await api.get('/notes/folder-tree')
+  async getFolderTree(versionId?: string): Promise<{ folders: any[] }> {
+    const params = versionId ? { versionId } : {}
+    const response = await api.get('/notes/folder-tree', { params })
     return response.data
   },
 

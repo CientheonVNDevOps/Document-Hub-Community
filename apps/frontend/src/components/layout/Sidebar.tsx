@@ -350,24 +350,26 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
               )}
             </Link>
           )}
-          <Link
-            to="/trash"
-            className={cn("flex items-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors",
-              isOpen ? "w-full px-3 py-2" : "justify-center w-full py-3"
-            )}
-          >
-            <Trash2 className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-4 w-4 mr-2")} />
-            {isOpen && (
-              <div className="flex items-center justify-between w-full">
-                <span>Trash</span>
-                {totalTrashItems > 0 && (
-                  <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
-                    {totalTrashItems}
-                  </span>
-                )}
-              </div>
-            )}
-          </Link>
+          {(user?.role === 'admin' || user?.role === 'manager') && (
+            <Link
+              to="/trash"
+              className={cn("flex items-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors",
+                isOpen ? "w-full px-3 py-2" : "justify-center w-full py-3"
+              )}
+            >
+              <Trash2 className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-4 w-4 mr-2")} />
+              {isOpen && (
+                <div className="flex items-center justify-between w-full">
+                  <span>Trash</span>
+                  {totalTrashItems > 0 && (
+                    <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
+                      {totalTrashItems}
+                    </span>
+                  )}
+                </div>
+              )}
+            </Link>
+          )}
         </div>
       </div>
 
@@ -462,8 +464,8 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                           <FolderIcon className="h-3 w-3 mr-1 flex-shrink-0" />
                           <span className="truncate flex-1 min-w-0 text-left">{folder.name}</span>
                         </Button>
-                        <div className="flex items-center flex-shrink-0 gap-0.5">
-                          {(user?.role === 'admin' || user?.role === 'manager') && (
+                        {(user?.role === 'admin' || user?.role === 'manager') && (
+                          <div className="flex items-center flex-shrink-0 gap-0.5">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -472,8 +474,6 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                             >
                               <Edit2 className="h-3 w-3" />
                             </Button>
-                          )}
-                          {(user?.role === 'admin' || user?.role === 'manager') && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -482,18 +482,18 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                             >
                               <FilePlus className="h-3 w-3" />
                             </Button>
-                          )}
-                          {user?.role === 'admin' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 text-red-500 hover:text-red-700"
-                              onClick={() => handleMoveFolderToTrash(folder.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
+                            {user?.role === 'admin' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 text-red-500 hover:text-red-700"
+                                onClick={() => handleMoveFolderToTrash(folder.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -557,8 +557,8 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                                     <FileText className="size-3 mr-2 flex-shrink-0" />
                                     <span className="truncate flex-1 min-w-0 text-left">{note.title}</span>
                                   </Link>
-                                  <div className="flex items-center flex-shrink-0 gap-0.5">
-                                    {(user?.role === 'admin' || user?.role === 'manager') && (
+                                  {(user?.role === 'admin' || user?.role === 'manager') && (
+                                    <div className="flex items-center flex-shrink-0 gap-0.5">
                                       <Button
                                         variant="ghost"
                                         size="icon"
@@ -567,16 +567,16 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                                       >
                                         <Edit2 className="h-2 w-2" />
                                       </Button>
-                                    )}
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-4 w-4 text-red-500 hover:text-red-700"
-                                      onClick={() => handleMoveToTrash(note.id)}
-                                    >
-                                      <Trash2 className="h-2 w-2" />
-                                    </Button>
-                                  </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4 text-red-500 hover:text-red-700"
+                                        onClick={() => handleMoveToTrash(note.id)}
+                                      >
+                                        <Trash2 className="h-2 w-2" />
+                                      </Button>
+                                    </div>
+                                  )}
                                 </>
                               )}
                             </div>

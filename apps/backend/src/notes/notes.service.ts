@@ -257,7 +257,7 @@ export class NotesService {
     return data;
   }
 
-  async findAllFolders(userId: string, versionId?: string) {
+  async findAllFolders(userId: string, versionId?: string, userRole?: string) {
     // Validate versionId if provided
     if (versionId && versionId !== 'undefined') {
       this.validateUUID(versionId, 'version ID');
@@ -276,9 +276,13 @@ export class NotesService {
       let query = this.supabase
         .from('folders')
         .select('*')
-        .eq('user_id', userId)
         .is('parent_id', null) // Only root folders
         .order('name', { ascending: true });
+
+      // If user cannot access all folders, only show their own folders
+      if (!RoleValidator.canAccessAllNotes(userRole || 'user')) {
+        query = query.eq('user_id', userId);
+      }
 
       // Only filter by is_deleted if the column exists
       if (hasIsDeletedColumn) {
@@ -305,9 +309,13 @@ export class NotesService {
       let query = this.supabase
         .from('folders')
         .select('*')
-        .eq('user_id', userId)
         .is('parent_id', null) // Only root folders
         .order('name', { ascending: true });
+
+      // If user cannot access all folders, only show their own folders
+      if (!RoleValidator.canAccessAllNotes(userRole || 'user')) {
+        query = query.eq('user_id', userId);
+      }
 
       // Filter by version if provided
       if (versionId && versionId !== 'undefined') {
@@ -326,16 +334,21 @@ export class NotesService {
     }
   }
 
-  async findFolderById(id: string, userId: string) {
+  async findFolderById(id: string, userId: string, userRole?: string) {
     // Validate UUID
     this.validateUUID(id, 'folder ID');
 
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from('folders')
       .select('*')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+      .eq('id', id);
+
+    // If user cannot access all folders, only show their own folders
+    if (!RoleValidator.canAccessAllNotes(userRole || 'user')) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query.single();
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -355,7 +368,7 @@ export class NotesService {
     this.validateUUID(id, 'folder ID');
     
     // Check if folder exists and belongs to user
-    await this.findFolderById(id, userId);
+    await this.findFolderById(id, userId, userRole);
     
     const { data, error } = await this.supabase
       .from('folders')
@@ -380,7 +393,7 @@ export class NotesService {
     this.validateUUID(id, 'folder ID');
     
     // Check if folder exists and belongs to user
-    await this.findFolderById(id, userId);
+    await this.findFolderById(id, userId, userRole);
     
     try {
       // First, check if the trash columns exist by trying to select them
@@ -647,7 +660,7 @@ export class NotesService {
     this.validateUUID(id, 'folder ID');
     
     // Check if folder exists and belongs to user
-    await this.findFolderById(id, userId);
+    await this.findFolderById(id, userId, userRole);
     
     const { data, error } = await this.supabase
       .from('folders')
@@ -701,28 +714,49 @@ export class NotesService {
   }
 
   // Get folder tree structure for navigation
-  async getFolderTree(userId: string, userRole?: string) {
+  async getFolderTree(userId: string, userRole?: string, versionId?: string) {
     // Validate role - all roles can view folders
     RoleValidator.validateNoteAccess(userRole || 'user', 'view folder tree');
 
-    // Get all folders for the user
-    const { data: folders, error: foldersError } = await this.supabase
+    // Validate versionId - REQUIRED for this endpoint
+    if (!versionId || versionId === 'undefined') {
+      throw new Error('versionId is required for folder tree');
+    }
+
+    this.validateUUID(versionId, 'version ID');
+
+    // Get all folders for the specified version
+    let foldersQuery = this.supabase
       .from('folders')
       .select('*')
-      .eq('user_id', userId)
+      .eq('version_id', versionId) // Always filter by version
       .order('name', { ascending: true });
+
+    // If user cannot access all folders, only show their own folders
+    if (!RoleValidator.canAccessAllNotes(userRole || 'user')) {
+      foldersQuery = foldersQuery.eq('user_id', userId);
+    }
+
+    const { data: folders, error: foldersError } = await foldersQuery;
 
     if (foldersError) {
       throw new Error(`Failed to fetch folders: ${foldersError.message}`);
     }
 
-    // Get all notes for the user
-    const { data: notes, error: notesError } = await this.supabase
+    // Get all notes for the specified version
+    let notesQuery = this.supabase
       .from('notes')
       .select('*')
-      .eq('user_id', userId)
       .eq('is_deleted', false) // Only show non-deleted notes
+      .eq('version_id', versionId) // Always filter by version
       .order('title', { ascending: true });
+
+    // If user cannot access all notes, only show their own notes
+    if (!RoleValidator.canAccessAllNotes(userRole || 'user')) {
+      notesQuery = notesQuery.eq('user_id', userId);
+    }
+
+    const { data: notes, error: notesError } = await notesQuery;
 
     if (notesError) {
       throw new Error(`Failed to fetch notes: ${notesError.message}`);
@@ -752,14 +786,20 @@ export class NotesService {
     this.validateUUID(folderId, 'folder ID');
 
     // Check if folder exists and user has access
-    await this.findFolderById(folderId, userId);
+    await this.findFolderById(folderId, userId, userRole);
 
     // Get subfolders
-    const { data: subfolders, error: subfoldersError } = await this.supabase
+    let subfoldersQuery = this.supabase
       .from('folders')
       .select('*')
-      .eq('parent_id', folderId)
-      .eq('user_id', userId)
+      .eq('parent_id', folderId);
+
+    // If user cannot access all folders, only show their own folders
+    if (!RoleValidator.canAccessAllNotes(userRole || 'user')) {
+      subfoldersQuery = subfoldersQuery.eq('user_id', userId);
+    }
+
+    const { data: subfolders, error: subfoldersError } = await subfoldersQuery
       .order('name', { ascending: true });
 
     if (subfoldersError) {
@@ -767,11 +807,18 @@ export class NotesService {
     }
 
     // Get notes in folder
-    const { data: notes, error: notesError } = await this.supabase
+    let notesQuery = this.supabase
       .from('notes')
       .select('*')
       .eq('folder_id', folderId)
-      .eq('is_deleted', false) // Only show non-deleted notes
+      .eq('is_deleted', false); // Only show non-deleted notes
+
+    // If user cannot access all notes, only show their own notes
+    if (!RoleValidator.canAccessAllNotes(userRole || 'user')) {
+      notesQuery = notesQuery.eq('user_id', userId);
+    }
+
+    const { data: notes, error: notesError } = await notesQuery
       .order('updated_at', { ascending: false });
 
     if (notesError) {

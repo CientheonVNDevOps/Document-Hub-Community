@@ -7,6 +7,7 @@ import rehypeHighlight from 'rehype-highlight'
 import { notesService } from '@/services/notesService'
 import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
 import { useVersion } from '@/contexts/VersionContext'
+import { useAuth } from '@/components/auth/AuthProvider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -33,6 +34,7 @@ export const NotePage = () => {
   const queryClient = useQueryClient()
   const { addToTrashOptimistically } = useTrashOptimisticUpdate()
   const { currentVersion } = useVersion()
+  const { user } = useAuth()
 
   const { data: note, isLoading } = useQuery({
     queryKey: ['note', id],
@@ -115,44 +117,45 @@ export const NotePage = () => {
                 <h1 className="text-2xl font-bold">{note.title}</h1>
               )}
             </div>
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 bg-red-100"
-              >
-                <Trash2 className="size-5" />
-              </Button>
-              {isEditing ? (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsEditing(false)
-                      setViewMode('preview')
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    disabled={updateNoteMutation.isPending}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {updateNoteMutation.isPending ? 'Saving...' : 'Save'}
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => {
-                  setIsEditing(true)
-                  setViewMode('source')
-                }}>
-                  Edit
+            {(user?.role === 'admin' || user?.role === 'manager') && (
+              <div className="flex items-center space-x-3">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 bg-red-100"
+                >
+                  <Trash2 className="size-5" />
                 </Button>
-              )}
-
-            </div>
+                {isEditing ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditing(false)
+                        setViewMode('preview')
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      disabled={updateNoteMutation.isPending}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      {updateNoteMutation.isPending ? 'Saving...' : 'Save'}
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={() => {
+                    setIsEditing(true)
+                    setViewMode('source')
+                  }}>
+                    Edit
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="text-sm text-gray-500">

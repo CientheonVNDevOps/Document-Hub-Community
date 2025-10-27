@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { notesService, Note, Folder } from '@/services/notesService'
 import { useTrashOptimisticUpdate } from '@/hooks/useTrashOptimisticUpdate'
 import { useVersion } from '@/contexts/VersionContext'
+import { useAuth } from '@/components/auth/AuthProvider'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeHighlight from 'rehype-highlight'
@@ -26,6 +27,7 @@ export const DashboardPage = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { addToTrashOptimistically } = useTrashOptimisticUpdate()
+  const { user } = useAuth()
   
   // Use shared version context
   const { currentVersion } = useVersion()
@@ -192,7 +194,7 @@ export const DashboardPage = () => {
   const handleViewFolders = async () => {
     try {
       setLoading(true)
-      const tree = await notesService.getFolderTree()
+      const tree = await notesService.getFolderTree(currentVersion?.id)
       setFolderTree(tree)
       setIsViewFoldersOpen(true)
     } catch (error) {
@@ -266,21 +268,25 @@ export const DashboardPage = () => {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 flex flex-col justify-center">
-              <Button 
-                className="w-full justify-start"
-                onClick={() => setIsCreateNoteOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Note
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => setIsCreateFolderOpen(true)}
-              >
-                <FolderIcon className="h-4 w-4 mr-2" />
-                New Folder
-              </Button>
+              {(user?.role === 'admin' || user?.role === 'manager') && (
+                <>
+                  <Button 
+                    className="w-full justify-start"
+                    onClick={() => setIsCreateNoteOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Note
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => setIsCreateFolderOpen(true)}
+                  >
+                    <FolderIcon className="h-4 w-4 mr-2" />
+                    New Folder
+                  </Button>
+                </>
+              )}
               <Button 
                 variant="outline" 
                 className="w-full justify-start"
@@ -340,14 +346,16 @@ export const DashboardPage = () => {
                       >
                         Open
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDeleteNote(note)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {(user?.role === 'admin' || user?.role === 'manager') && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDeleteNote(note)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

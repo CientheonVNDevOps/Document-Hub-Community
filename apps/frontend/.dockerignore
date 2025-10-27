@@ -8,7 +8,7 @@ README.md
 .env.development.local
 .env.test.local
 .env.production.local
-dist
+.env.production
 coverage
 .nyc_output
 .vscode
@@ -16,3 +16,27 @@ coverage
 *.log
 .DS_Store
 Thumbs.db
+# Build artifacts
+dist
+.vite
+# Test files
+*.spec.ts
+*.test.ts
+test
+__tests__
+# Documentation
+docs
+*.md
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+# Config files we don't need
+.eslintrc*
+.prettierrc*
+jest.config.*
+# Other
+.DS_Store
+*.swp
+*.swo
+*~

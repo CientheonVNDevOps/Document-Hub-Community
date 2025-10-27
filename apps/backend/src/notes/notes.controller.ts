@@ -95,9 +95,11 @@ export class NotesController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get folder tree structure for navigation' })
+  @ApiQuery({ name: 'versionId', required: true, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Folder tree retrieved successfully' })
-  getFolderTree(@Request() req) {
-    return this.notesService.getFolderTree(req.user.userId, req.user.role);
+  @ApiResponse({ status: 400, description: 'versionId is required' })
+  getFolderTree(@Request() req, @Query('versionId') versionId: string) {
+    return this.notesService.getFolderTree(req.user.userId, req.user.role, versionId);
   }
 
   // Folder endpoints - moved before :id route to avoid conflicts
@@ -108,7 +110,7 @@ export class NotesController {
   @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Folders retrieved successfully' })
   findAllFolders(@Request() req, @Query('versionId') versionId?: string) {
-    return this.notesService.findAllFolders(req.user.userId, versionId);
+    return this.notesService.findAllFolders(req.user.userId, versionId, req.user.role);
   }
 
   @Get('folders/:id')

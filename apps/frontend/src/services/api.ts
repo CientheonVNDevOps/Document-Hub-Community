@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3002/api'
+const BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://dc0kc00ko8cgo84k4ok4w0kw.72.60.41.15.sslip.io'
+const API_BASE_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

@@ -154,12 +154,13 @@ export class RoleValidator {
   }
 
   /**
-   * Checks if user can access all notes (manager or admin)
+   * Checks if user can access all notes (all roles can view all notes)
    * @param userRole - The user's role
    * @returns boolean
    */
   static canAccessAllNotes(userRole: string): boolean {
-    return this.isManagerOrAdmin(userRole);
+    // All roles can view all notes, but only managers/admins can edit/delete
+    return true;
   }
 
   /**

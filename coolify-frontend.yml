@@ -5,15 +5,18 @@ services:
     image: docker.io/lykny97/takingnote-frontend:latest
     container_name: takingnote-frontend
     restart: unless-stopped
+    environment:
+      VITE_API_URL: http://dc0kc00ko8cgo84k4ok4w0kw.72.60.41.15.sslip.io
     ports:
-      - "80:3000"
+      - "80:80"
     networks:
       - takingnote-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
     labels:
       - "coolify.managed=true"
       - "coolify.type=application"

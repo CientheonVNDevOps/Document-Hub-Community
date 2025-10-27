@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   backend:
-    image: takingnote-backend:latest
+    image: docker.io/lykny97/takingnote-backend:latest
     container_name: takingnote-backend
     restart: unless-stopped
     environment:
@@ -11,20 +11,22 @@ services:
       REDIS_URL: ${REDIS_URL}
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
-    ports:
-      - "3000:3000"
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3003}
+    expose:
+      - "3000"
     networks:
       - takingnote-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 120s
     labels:
       - "coolify.managed=true"
       - "coolify.type=application"
       - "coolify.name=takingnote-backend"
+      - "coolify.port=3000"
 
 networks:
   takingnote-network:

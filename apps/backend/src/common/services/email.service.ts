@@ -110,12 +110,12 @@ export class EmailService {
               <p style="margin-bottom: 15px;">Here's what you can do with your account:</p>
               
               <div style="background-color: white; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
-                <h4 style="margin-top: 0; color: #333;">📝 Note Management</h4>
+                <h4 style="margin-top: 0; color: #333;">👁️ View Notes</h4>
                 <ul style="margin: 0; padding-left: 20px; color: #666;">
-                  <li>Create, edit, and organize your notes</li>
-                  <li>Rich text editing with full formatting capabilities</li>
+                  <li>Browse and read your notes with ease</li>
                   <li>Full-text search to quickly find what you need</li>
-                  <li>Version history to track changes and restore previous versions</li>
+                  <li>View version history to track changes</li>
+                  <li>Rich text support for formatted content</li>
                 </ul>
               </div>
               
@@ -125,15 +125,7 @@ export class EmailService {
                   <li>Organize notes in hierarchical folder structures</li>
                   <li>Create nested folders for better organization</li>
                   <li>Drag and drop to reorganize your content</li>
-                </ul>
-              </div>
-              
-              <div style="background-color: white; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
-                <h4 style="margin-top: 0; color: #333;">🗑️ Trash & Recovery</h4>
-                <ul style="margin: 0; padding-left: 20px; color: #666;">
-                  <li>Safely delete items - they're moved to Trash</li>
-                  <li>Restore accidentally deleted notes or folders</li>
-                  <li>Permanently delete items when ready</li>
+                  <li>Maintain a clean and intuitive workspace</li>
                 </ul>
               </div>
               
@@ -141,8 +133,9 @@ export class EmailService {
                 <h4 style="margin-top: 0; color: #333;">🔐 Security & Access</h4>
                 <ul style="margin: 0; padding-left: 20px; color: #666;">
                   <li>Secure authentication with JWT tokens</li>
-                  <li>Role-based access control</li>
-                  <li>Row-level security for your data</li>
+                  <li>Role-based access control for your data</li>
+                  <li>Row-level security protection</li>
+                  <li>Your information is always safe and secure</li>
                 </ul>
               </div>
             </div>
