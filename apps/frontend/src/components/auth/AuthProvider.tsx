@@ -33,8 +33,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         try {
           const userData = await authService.getProfile()
           dispatch(setUser(userData))
-        } catch (error) {
-          console.error('Failed to get user profile:', error)
+        } catch (error: any) {
+          // Silently handle auth errors - token might be expired or invalid
+          if (error?.response?.status !== 401) {
+            console.error('Failed to get user profile:', error)
+          }
         }
       }
     }
