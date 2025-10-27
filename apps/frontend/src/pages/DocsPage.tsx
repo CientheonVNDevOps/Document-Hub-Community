@@ -118,17 +118,14 @@ export const DocsPage = () => {
     }
   }
 
-  const renderFolderTree = (folders: Folder[], level = 0) => {
-    // Only render up to 2 layers (level 0 and level 1)
-    if (level >= 2) return null
-    
+  const renderFolderTree = (folders: Folder[]) => {
     return folders.map(folder => (
       <div key={folder.id}>
         <Button
           variant="ghost"
           onClick={() => toggleFolder(folder.id)}
           className="flex items-center w-full px-3 py-2 text-sm justify-start hover:bg-accent"
-          style={{ paddingLeft: `${level * 16 + 12}px` }}
+          style={{ paddingLeft: '12px' }}
         >
           {folder.notes && folder.notes.length > 0 ? (
             expandedFolders.has(folder.id) ? (
@@ -153,16 +150,12 @@ export const DocsPage = () => {
                 className={`flex items-center w-full px-3 py-2 text-sm justify-start ${
                   selectedNote?.id === note.id ? 'bg-accent text-accent-foreground font-medium' : ''
                 }`}
-                style={{ paddingLeft: `${(level + 1) * 16 + 12}px` }}
+                style={{ paddingLeft: '28px' }}
               >
                 <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
                 <span className="truncate">{note.title}</span>
               </Button>
             ))}
-            
-            {folder.children && folder.children.length > 0 && level < 1 && (
-              <div>{renderFolderTree(folder.children, level + 1)}</div>
-            )}
           </>
         )}
       </div>
@@ -236,7 +229,7 @@ export const DocsPage = () => {
               Documentation
             </div>
             <div className="mt-2">
-              {folderTree.folders.map(folder => renderFolderTree([folder]))}
+              {renderFolderTree(folderTree.folders)}
             </div>
           </div>
         </aside>

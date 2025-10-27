@@ -1760,24 +1760,17 @@ export class NotesService {
         return { folders: [] };
       }
 
-      // Build folder tree
-      const folderMap = new Map();
+      // Build 2-layer folder structure (no nested subfolders)
+      // Only return root folders (no parent_id) with their notes
       const rootFolders: any[] = [];
 
       folders.forEach(folder => {
-        folderMap.set(folder.id, {
-          ...folder,
-          children: [],
-          notes: []
-        });
-      });
-
-      folders.forEach(folder => {
-        const folderNode = folderMap.get(folder.id);
-        if (folder.parent_id && folderMap.has(folder.parent_id)) {
-          folderMap.get(folder.parent_id).children.push(folderNode);
-        } else {
-          rootFolders.push(folderNode);
+        // Only include root level folders (no parent_id or parent is null)
+        if (!folder.parent_id) {
+          rootFolders.push({
+            ...folder,
+            notes: []
+          });
         }
       });
 
@@ -1792,8 +1785,11 @@ export class NotesService {
 
           if (!notesError && notes) {
             notes.forEach(note => {
-              if (note.folder_id && folderMap.has(note.folder_id)) {
-                folderMap.get(note.folder_id).notes.push(note);
+              if (note.folder_id) {
+                const folder = rootFolders.find(f => f.id === note.folder_id);
+                if (folder) {
+                  folder.notes.push(note);
+                }
               }
             });
           }
