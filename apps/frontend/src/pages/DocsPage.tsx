@@ -119,6 +119,9 @@ export const DocsPage = () => {
   }
 
   const renderFolderTree = (folders: Folder[], level = 0) => {
+    // Only render up to 2 layers (level 0 and level 1)
+    if (level >= 2) return null
+    
     return folders.map(folder => (
       <div key={folder.id}>
         <Button
@@ -157,7 +160,7 @@ export const DocsPage = () => {
               </Button>
             ))}
             
-            {folder.children && folder.children.length > 0 && (
+            {folder.children && folder.children.length > 0 && level < 1 && (
               <div>{renderFolderTree(folder.children, level + 1)}</div>
             )}
           </>
