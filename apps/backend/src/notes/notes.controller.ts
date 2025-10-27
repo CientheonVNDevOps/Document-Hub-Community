@@ -11,15 +11,50 @@ import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('Notes')
 @Controller('notes')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 
-  // Note endpoints
+  // Public endpoints for docs (no authentication required)
+  @Get('public/versions')
+  @ApiOperation({ summary: 'Get all community versions (public)' })
+  @ApiResponse({ status: 200, description: 'Community versions retrieved successfully' })
+  async getPublicVersions() {
+    return this.notesService.getAllCommunityVersionsPublic();
+  }
+
+  @Get('public/folder-tree')
+  @ApiOperation({ summary: 'Get public folder tree structure for navigation' })
+  @ApiResponse({ status: 200, description: 'Folder tree retrieved successfully' })
+  async getPublicFolderTree(@Query('versionId') versionId?: string) {
+    return this.notesService.getFolderTreePublic(versionId);
+  }
+
+  @Get('public/versions/:versionId/notes')
+  @ApiOperation({ summary: 'Get public notes by version' })
+  @ApiResponse({ status: 200, description: 'Notes retrieved successfully' })
+  async getPublicNotesByVersion(@Param('versionId') versionId: string) {
+    return this.notesService.getAllNotesPublic(versionId);
+  }
+
+  @Get('public/versions/:versionId/folders')
+  @ApiOperation({ summary: 'Get public folders by version' })
+  @ApiResponse({ status: 200, description: 'Folders retrieved successfully' })
+  async getPublicFoldersByVersion(@Param('versionId') versionId: string) {
+    return this.notesService.getAllFoldersPublic(versionId);
+  }
+
+  @Get('public/:id')
+  @ApiOperation({ summary: 'Get a specific note by ID (public)' })
+  @ApiResponse({ status: 200, description: 'Note retrieved successfully' })
+  async getPublicNote(@Param('id') id: string) {
+    return this.notesService.findNoteByIdPublic(id);
+  }
+
+  // Note endpoints (authenticated)
   @Post()
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'manager', 'user')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new note (All roles in development)' })
   @ApiResponse({ status: 201, description: 'Note created successfully' })
   createNote(@Request() req, @Body() createNoteDto: CreateNoteDto, @Query('versionId') versionId?: string) {
@@ -27,6 +62,8 @@ export class NotesController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all notes for the current user' })
   @ApiQuery({ name: 'folderId', required: false, description: 'Filter by folder ID' })
   @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
@@ -36,6 +73,8 @@ export class NotesController {
   }
 
   @Get('search')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Search notes' })
   @ApiQuery({ name: 'q', required: true, description: 'Search query' })
   @ApiResponse({ status: 200, description: 'Search results retrieved successfully' })
@@ -44,6 +83,8 @@ export class NotesController {
   }
 
   @Get('folder-tree')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get folder tree structure for navigation' })
   @ApiResponse({ status: 200, description: 'Folder tree retrieved successfully' })
   getFolderTree(@Request() req) {
@@ -52,6 +93,8 @@ export class NotesController {
 
   // Folder endpoints - moved before :id route to avoid conflicts
   @Get('folders')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all root folders for the current user' })
   @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Folders retrieved successfully' })
@@ -60,6 +103,8 @@ export class NotesController {
   }
 
   @Get('folders/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a specific folder by ID' })
   @ApiResponse({ status: 200, description: 'Folder retrieved successfully' })
   findFolderById(@Request() req, @Param('id') id: string) {
@@ -68,6 +113,8 @@ export class NotesController {
 
   // Trash endpoints - must be defined before :id routes to avoid conflicts
   @Get('trash')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all notes in trash' })
   @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Trash notes retrieved successfully' })
@@ -76,6 +123,9 @@ export class NotesController {
   }
 
   @Delete('trash')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Empty trash (permanently delete all notes in trash)' })
   @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Trash emptied successfully' })
@@ -84,6 +134,8 @@ export class NotesController {
   }
 
   @Get('trash/folders')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all folders in trash' })
   @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'Trash folders retrieved successfully' })
@@ -92,6 +144,8 @@ export class NotesController {
   }
 
   @Patch('folders/:id/recover')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Recover folder from trash' })
   @ApiResponse({ status: 200, description: 'Folder recovered successfully' })
   recoverFolder(@Request() req, @Param('id') id: string) {
@@ -99,6 +153,8 @@ export class NotesController {
   }
 
   @Patch('trash/recover-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Recover all items from trash' })
   @ApiQuery({ name: 'versionId', required: false, description: 'Filter by community version ID' })
   @ApiResponse({ status: 200, description: 'All items recovered successfully' })
@@ -116,6 +172,8 @@ export class NotesController {
 
   // Community Version Management endpoints (must come before :id route)
   @Get('versions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all community versions' })
   @ApiResponse({ status: 200, description: 'Community versions retrieved successfully' })
   getAllCommunityVersions(@Request() req) {
@@ -123,8 +181,9 @@ export class NotesController {
   }
 
   @Post('versions')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('manager', 'admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new community version (Manager and Admin only)' })
   @ApiResponse({ status: 201, description: 'Community version created successfully' })
   createCommunityVersion(@Request() req, @Body() createVersionDto: CreateCommunityVersionDto) {
@@ -132,8 +191,9 @@ export class NotesController {
   }
 
   @Patch('versions/:id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a community version (Admin only)' })
   @ApiResponse({ status: 200, description: 'Community version updated successfully' })
   updateCommunityVersion(@Request() req, @Param('id') id: string, @Body() updateVersionDto: UpdateCommunityVersionDto) {
@@ -141,8 +201,9 @@ export class NotesController {
   }
 
   @Delete('versions/:id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a community version (Admin only)' })
   @ApiResponse({ status: 200, description: 'Community version deleted successfully' })
   deleteCommunityVersion(@Request() req, @Param('id') id: string) {
@@ -150,6 +211,8 @@ export class NotesController {
   }
 
   @Get('versions/:id/notes')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get notes by version' })
   @ApiResponse({ status: 200, description: 'Notes retrieved successfully' })
   getNotesByVersion(@Request() req, @Param('id') id: string) {
@@ -157,6 +220,8 @@ export class NotesController {
   }
 
   @Get('versions/:id/folders')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get folders by version' })
   @ApiResponse({ status: 200, description: 'Folders retrieved successfully' })
   getFoldersByVersion(@Request() req, @Param('id') id: string) {
@@ -164,8 +229,9 @@ export class NotesController {
   }
 
   @Post('versions/migrate')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Migrate content between versions (Admin only)' })
   @ApiResponse({ status: 200, description: 'Content migrated successfully' })
   migrateContentToVersion(@Request() req, @Body() body: { sourceVersionId: string, targetVersionId: string }) {
@@ -173,6 +239,8 @@ export class NotesController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a specific note by ID' })
   @ApiResponse({ status: 200, description: 'Note retrieved successfully' })
   findNoteById(@Request() req, @Param('id') id: string) {
@@ -180,8 +248,9 @@ export class NotesController {
   }
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'manager')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a note (Admin and Manager only)' })
   @ApiResponse({ status: 200, description: 'Note updated successfully' })
   updateNote(@Request() req, @Param('id') id: string, @Body() updateNoteDto: UpdateNoteDto) {
@@ -189,8 +258,9 @@ export class NotesController {
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a note (Admin only)' })
   @ApiResponse({ status: 200, description: 'Note deleted successfully' })
   deleteNote(@Request() req, @Param('id') id: string) {
@@ -199,8 +269,9 @@ export class NotesController {
 
   // Folder endpoints
   @Post('folders')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'manager')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new folder (Admin and Manager only)' })
   @ApiResponse({ status: 201, description: 'Folder created successfully' })
   createFolder(@Request() req, @Body() createFolderDto: CreateFolderDto, @Query('versionId') versionId?: string) {
@@ -208,8 +279,9 @@ export class NotesController {
   }
 
   @Patch('folders/:id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'manager')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a folder (Admin and Manager only)' })
   @ApiResponse({ status: 200, description: 'Folder updated successfully' })
   updateFolder(@Request() req, @Param('id') id: string, @Body() updateData: Partial<CreateFolderDto>) {
@@ -217,8 +289,9 @@ export class NotesController {
   }
 
   @Delete('folders/:id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a folder (Admin only)' })
   @ApiResponse({ status: 200, description: 'Folder deleted successfully' })
   deleteFolder(@Request() req, @Param('id') id: string) {
@@ -227,6 +300,8 @@ export class NotesController {
 
   // Version endpoints
   @Get(':id/versions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get version history for a note' })
   @ApiResponse({ status: 200, description: 'Version history retrieved successfully' })
   getNoteVersions(@Request() req, @Param('id') id: string) {
@@ -234,8 +309,9 @@ export class NotesController {
   }
 
   @Post(':id/versions/:versionId/restore')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'manager')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Restore a specific version of a note (Admin and Manager only)' })
   @ApiResponse({ status: 200, description: 'Version restored successfully' })
   restoreNoteVersion(@Request() req, @Param('id') id: string, @Param('versionId') versionId: string) {
@@ -243,6 +319,8 @@ export class NotesController {
   }
 
   @Post('sample-data')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create sample data for development' })
   @ApiResponse({ status: 201, description: 'Sample data created successfully' })
   createSampleData(@Request() req) {
@@ -250,6 +328,8 @@ export class NotesController {
   }
 
   @Post('ensure-sample-data')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Ensure sample data exists for current user' })
   @ApiResponse({ status: 200, description: 'Sample data ensured' })
   ensureSampleData(@Request() req) {
@@ -258,8 +338,9 @@ export class NotesController {
 
   // Rename endpoints
   @Patch(':id/rename')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'manager')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Rename a note (Admin and Manager only)' })
   @ApiResponse({ status: 200, description: 'Note renamed successfully' })
   renameNote(@Request() req, @Param('id') id: string, @Body() body: { title: string }) {
@@ -267,8 +348,9 @@ export class NotesController {
   }
 
   @Patch('folders/:id/rename')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'manager')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Rename a folder (Admin and Manager only)' })
   @ApiResponse({ status: 200, description: 'Folder renamed successfully' })
   renameFolder(@Request() req, @Param('id') id: string, @Body() body: { name: string }) {
@@ -277,6 +359,8 @@ export class NotesController {
 
   // All Notes endpoints
   @Get('all-notes')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all notes with folder information for All Notes view' })
   @ApiResponse({ status: 200, description: 'All notes with folders retrieved successfully' })
   getAllNotesWithFolders(@Request() req) {
@@ -284,6 +368,8 @@ export class NotesController {
   }
 
   @Get('folders/:id/contents')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get folder contents (notes and subfolders)' })
   @ApiResponse({ status: 200, description: 'Folder contents retrieved successfully' })
   getFolderContents(@Request() req, @Param('id') id: string) {
@@ -291,6 +377,8 @@ export class NotesController {
   }
 
   @Patch(':id/trash')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Move note to trash' })
   @ApiResponse({ status: 200, description: 'Note moved to trash successfully' })
   moveToTrash(@Request() req, @Param('id') id: string) {
@@ -298,6 +386,8 @@ export class NotesController {
   }
 
   @Patch(':id/recover')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Recover note from trash' })
   @ApiResponse({ status: 200, description: 'Note recovered successfully' })
   recoverNote(@Request() req, @Param('id') id: string) {

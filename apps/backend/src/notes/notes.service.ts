@@ -1793,4 +1793,171 @@ export class NotesService {
 
     return { message: 'Content migrated successfully' };
   }
+
+  // Public methods (no authentication required)
+  async getAllCommunityVersionsPublic() {
+    const { data, error } = await this.supabase
+      .from('community_versions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching public community versions:', error);
+      throw new Error(`Failed to fetch community versions: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async getAllNotesPublic(versionId: string) {
+    this.validateUUID(versionId, 'Version ID');
+
+    const { data, error } = await this.supabase
+      .from('notes')
+      .select(`
+        *,
+        folders (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('version_id', versionId)
+      .eq('is_deleted', false)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching public notes:', error);
+      throw new Error(`Failed to fetch notes: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  async getAllFoldersPublic(versionId: string) {
+    this.validateUUID(versionId, 'Version ID');
+
+    const { data, error } = await this.supabase
+      .from('folders')
+      .select('*')
+      .eq('version_id', versionId)
+      .eq('is_deleted', false)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching public folders:', error);
+      throw new Error(`Failed to fetch folders: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  async findNoteByIdPublic(id: string) {
+    this.validateUUID(id, 'Note ID');
+
+    const { data, error } = await this.supabase
+      .from('notes')
+      .select(`
+        *,
+        folders (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('id', id)
+      .eq('is_deleted', false)
+      .single();
+
+    if (error) {
+      console.error('Error fetching public note:', error);
+      throw new NotFoundException(`Note not found: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async getFolderTreePublic(versionId?: string) {
+    try {
+      // Validate versionId if provided
+      if (versionId && versionId !== 'undefined' && versionId !== '') {
+        try {
+          this.validateUUID(versionId, 'Version ID');
+        } catch (error) {
+          console.error('Invalid versionId:', versionId);
+          return { folders: [] };
+        }
+      }
+
+      // Query folders
+      let query = this.supabase
+        .from('folders')
+        .select('*')
+        .eq('is_deleted', false);
+
+      // Filter by version if provided
+      if (versionId && versionId !== 'undefined' && versionId !== '') {
+        query = query.eq('version_id', versionId);
+      }
+
+      const { data: folders, error: foldersError } = await query;
+
+      if (foldersError) {
+        console.error('Error fetching folders for public folder tree:', foldersError);
+        return { folders: [] };
+      }
+
+      if (!folders || folders.length === 0) {
+        return { folders: [] };
+      }
+
+      // Build folder tree
+      const folderMap = new Map();
+      const rootFolders: any[] = [];
+
+      folders.forEach(folder => {
+        folderMap.set(folder.id, {
+          ...folder,
+          children: [],
+          notes: []
+        });
+      });
+
+      folders.forEach(folder => {
+        const folderNode = folderMap.get(folder.id);
+        if (folder.parent_id && folderMap.has(folder.parent_id)) {
+          folderMap.get(folder.parent_id).children.push(folderNode);
+        } else {
+          rootFolders.push(folderNode);
+        }
+      });
+
+      // Get notes for each folder if version is specified
+      if (versionId && versionId !== 'undefined' && versionId !== '') {
+        try {
+          const { data: notes, error: notesError } = await this.supabase
+            .from('notes')
+            .select('*')
+            .eq('version_id', versionId)
+            .eq('is_deleted', false);
+
+          if (!notesError && notes) {
+            notes.forEach(note => {
+              if (note.folder_id && folderMap.has(note.folder_id)) {
+                folderMap.get(note.folder_id).notes.push(note);
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching notes for folder tree:', error);
+        }
+      }
+
+      return { folders: rootFolders };
+    } catch (error) {
+      console.error('Error building public folder tree:', error);
+      // Return empty array instead of throwing to prevent 500 errors
+      return { folders: [] };
+    }
+  }
 }

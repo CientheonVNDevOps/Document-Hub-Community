@@ -10,12 +10,15 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { NotePage } from '@/pages/NotePage'
 import { AdminPage } from '@/pages/AdminPage'
 import { TrashPage } from './pages/TrashPage'
+import { DocsPage } from './pages/DocsPage'
 
 function App() {
   return (
     <AuthProvider>
       <VersionProvider>
         <Routes>
+        {/* Public routes */}
+        <Route path="/docs" element={<DocsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
