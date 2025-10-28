@@ -11,13 +11,13 @@ import rehypeHighlight from 'rehype-highlight'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
-  DialogFooter 
+  DialogFooter
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Search, FileText, Folder as FolderIcon, FolderOpen, Clock, ChevronRight, ChevronDown, Eye, Trash2, AlertTriangle } from 'lucide-react'
@@ -28,10 +28,10 @@ export const DashboardPage = () => {
   const queryClient = useQueryClient()
   const { addToTrashOptimistically } = useTrashOptimisticUpdate()
   const { user } = useAuth()
-  
+
   // Use shared version context
   const { currentVersion } = useVersion()
-  
+
   // Modal states
   const [isCreateNoteOpen, setIsCreateNoteOpen] = useState(false)
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false)
@@ -40,14 +40,14 @@ export const DashboardPage = () => {
   const [isViewFoldersOpen, setIsViewFoldersOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null)
-  
+
   // Form states
   const [newNoteTitle, setNewNoteTitle] = useState('')
   const [newNoteContent, setNewNoteContent] = useState('')
   const [newNoteFolderId, setNewNoteFolderId] = useState('')
   const [newFolderName, setNewFolderName] = useState('')
   const [newFolderDescription, setNewFolderDescription] = useState('')
-  
+
   // View states
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null)
@@ -87,12 +87,12 @@ export const DashboardPage = () => {
       if (note) {
         addToTrashOptimistically(note)
       }
-      
+
       // Invalidate caches
       queryClient.invalidateQueries({ queryKey: ['trash-notes', currentVersion?.id] })
       queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
       queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
-      
+
       setIsDeleteDialogOpen(false)
       setNoteToDelete(null)
     }
@@ -109,13 +109,13 @@ export const DashboardPage = () => {
         content: newNoteContent.trim(),
         folder_id: newNoteFolderId || undefined
       }, currentVersion?.id)
-      
+
       // Reset form and close modal
       setNewNoteTitle('')
       setNewNoteContent('')
       setNewNoteFolderId('')
       setIsCreateNoteOpen(false)
-      
+
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ['notes'] })
       queryClient.invalidateQueries({ queryKey: ['notes', currentVersion?.id] })
@@ -136,12 +136,12 @@ export const DashboardPage = () => {
         name: newFolderName.trim(),
         description: newFolderDescription.trim() || undefined
       }, currentVersion?.id)
-      
+
       // Reset form and close modal
       setNewFolderName('')
       setNewFolderDescription('')
       setIsCreateFolderOpen(false)
-      
+
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ['folders'] })
       queryClient.invalidateQueries({ queryKey: ['folders', currentVersion?.id] })
@@ -205,8 +205,8 @@ export const DashboardPage = () => {
   }
 
   const toggleFolderExpansion = (folderId: string) => {
-    setExpandedFolders(prev => 
-      prev.includes(folderId) 
+    setExpandedFolders(prev =>
+      prev.includes(folderId)
         ? prev.filter(id => id !== folderId)
         : [...prev, folderId]
     )
@@ -216,7 +216,7 @@ export const DashboardPage = () => {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Welcome back! Here's what's happening with your notes.</p>      
+        <p className="text-gray-600">Welcome back! Here's what's happening with your notes.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -225,8 +225,7 @@ export const DashboardPage = () => {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Search className="h-5 w-5 mr-2" />
-                Search Notes
+                <Search className="h-5 w-5 mr-2" />                Search Notes
               </CardTitle>
               <CardDescription>
                 Find your notes quickly with our powerful search
@@ -243,8 +242,8 @@ export const DashboardPage = () => {
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     <h4 className="font-medium">Search Results</h4>
                     {searchResults.map((note) => (
-                      <div 
-                        key={note.id} 
+                      <div
+                        key={note.id}
                         className="p-2 border rounded hover:bg-gray-50 cursor-pointer"
                         onClick={() => navigate(`/note/${note.id}`)}
                       >
@@ -270,15 +269,15 @@ export const DashboardPage = () => {
             <CardContent className="space-y-2 flex flex-col justify-center">
               {(user?.role === 'admin' || user?.role === 'manager') && (
                 <>
-                  <Button 
+                  <Button
                     className="w-full justify-start"
                     onClick={() => setIsCreateNoteOpen(true)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     New Note
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-start"
                     onClick={() => setIsCreateFolderOpen(true)}
                   >
@@ -287,8 +286,8 @@ export const DashboardPage = () => {
                   </Button>
                 </>
               )}
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start"
                 onClick={handleViewFolders}
                 disabled={loading}
@@ -330,8 +329,8 @@ export const DashboardPage = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleViewNote(note)}
                         disabled={loading}
@@ -339,16 +338,16 @@ export const DashboardPage = () => {
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => navigate(`/note/${note.id}`)}
                       >
                         Open
                       </Button>
                       {(user?.role === 'admin' || user?.role === 'manager') && (
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteNote(note)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -394,8 +393,8 @@ export const DashboardPage = () => {
                           </div>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => handleViewFolder(folder)}
                         disabled={loading}
@@ -443,8 +442,8 @@ export const DashboardPage = () => {
             </div>
             <div>
               <label className="text-sm font-medium">Folder (Optional)</label>
-              <select 
-                value={newNoteFolderId} 
+              <select
+                value={newNoteFolderId}
                 onChange={(e) => setNewNoteFolderId(e.target.value)}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
@@ -458,13 +457,13 @@ export const DashboardPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsCreateNoteOpen(false)}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateNote}
               disabled={!newNoteTitle.trim() || loading}
             >
@@ -505,13 +504,13 @@ export const DashboardPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsCreateFolderOpen(false)}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateFolder}
               disabled={!newFolderName.trim() || loading}
             >
@@ -561,13 +560,13 @@ export const DashboardPage = () => {
             )}
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsViewNoteOpen(false)}
             >
               Close
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 setIsViewNoteOpen(false)
                 if (selectedNote) navigate(`/note/${selectedNote.id}`)
@@ -594,7 +593,7 @@ export const DashboardPage = () => {
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             {folderContents && (
               <>
-            
+
                 {folderContents.notes.length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2">Notes</h4>
@@ -606,8 +605,8 @@ export const DashboardPage = () => {
                             <span className="text-sm font-medium">{note.title}</span>
                           </div>
                           <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => {
                                 setIsViewFolderOpen(false)
@@ -616,8 +615,8 @@ export const DashboardPage = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => {
                                 setIsViewFolderOpen(false)
@@ -642,8 +641,8 @@ export const DashboardPage = () => {
             )}
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsViewFolderOpen(false)}
             >
               Close
@@ -674,7 +673,7 @@ export const DashboardPage = () => {
                     <div className="space-y-2">
                       {folderTree.folders.map((folder: any) => (
                         <div key={folder.id} className="border rounded">
-                          <div 
+                          <div
                             className="flex items-center p-2 cursor-pointer hover:bg-gray-50"
                             onClick={() => toggleFolderExpansion(folder.id)}
                           >
@@ -701,7 +700,7 @@ export const DashboardPage = () => {
                               ({folder.notes?.length || 0} notes)
                             </span>
                           </div>
-                          
+
                           {expandedFolders.includes(folder.id) && folder.notes && folder.notes.length > 0 && (
                             <div className="ml-6 space-y-1 pb-2">
                               {folder.notes.map((note: Note) => (
@@ -711,8 +710,8 @@ export const DashboardPage = () => {
                                     <span className="text-xs">{note.title}</span>
                                   </div>
                                   <div className="flex gap-1">
-                                    <Button 
-                                      variant="ghost" 
+                                    <Button
+                                      variant="ghost"
                                       size="sm"
                                       className="h-6 w-6 p-0"
                                       onClick={() => {
@@ -722,8 +721,8 @@ export const DashboardPage = () => {
                                     >
                                       <Eye className="h-3 w-3" />
                                     </Button>
-                                    <Button 
-                                      variant="ghost" 
+                                    <Button
+                                      variant="ghost"
                                       size="sm"
                                       className="h-6 w-6 p-0 mr-6"
                                       onClick={() => {
@@ -743,13 +742,13 @@ export const DashboardPage = () => {
                     </div>
                   </div>
                 )}
-                
+
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsViewFoldersOpen(false)}
             >
               Close
@@ -779,13 +778,13 @@ export const DashboardPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               variant="destructive"
               onClick={confirmDeleteNote}
               disabled={deleteNoteMutation.isPending}

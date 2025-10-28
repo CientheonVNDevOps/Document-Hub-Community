@@ -5,7 +5,7 @@ import { RootState, AppDispatch } from '@/store'
 import { login, clearError } from '@/store/slices/authSlice'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Mail, Lock, ArrowUpRight, Users } from 'lucide-react'
+import { Mail, Lock, ArrowUpRight } from 'lucide-react'
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('')
@@ -27,11 +27,11 @@ export const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-8 bg-gray-200">
+    <div className="flex items-center justify-center p-8 bg-gray-200">
       <div className="flex w-full max-w-7xl rounded-2xl shadow-2xl overflow-hidden bg-white">
         {/* Left Section - Main Content */}
         <div 
-          className="w-full lg:w-1/2 flex items-center justify-center p-8 relative"
+          className="w-full lg:w-1/2 flex items-center justify-center relative"
           style={{
             backgroundImage: "url('/text-bg.png')",
             backgroundSize: 'cover',
@@ -44,9 +44,9 @@ export const LoginPage = () => {
           
           <div className="w-full max-w-xl relative z-10">
           {/* Logo */}
-          <div className="flex items-center gap-2 mb-12 justify-center">
-              <div className="w-8 h-8 rounded flex items-center justify-center">
-              <img src="/vite.png" alt="Document Hub Cientheon" width={40} height={40} />
+          <div className="flex items-center mb-8 -mt-16 gap-x-4 justify-center">
+              <div className="w-6 h-6 rounded flex items-center justify-center">
+              <img src="/logo.svg" alt="Document Hub Cientheon" width={50} height={50} />
             </div>
             <span className="text-2xl font-bold tracking-tight text-gray-900">DOCUMENT HUB</span>
           </div>
@@ -57,7 +57,7 @@ export const LoginPage = () => {
           </h1>
 
           {/* Description */}
-          <p className="text-lg text-gray-600 mb-8 text-center">
+          <p className="text-base text-gray-600 mb-8 text-center font-light">
             Your central hub for organizing, sharing, and collaborating on documents. Streamline your workflow with intelligent document management.
           </p>
 
@@ -117,8 +117,8 @@ export const LoginPage = () => {
               <img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=Alexander" alt="User 3" className="w-10 h-10 rounded-full" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-gray-900">Let's join with 20k+ Users!</p>
-              <p className="text-sm text-gray-600">Let's see happy customers</p>
+              <p className="font-semibold text-gray-900">Let's join our community to share your knowledge!</p>
+              <p className="text-sm text-gray-600">Scale fast. Build fast.</p>
             </div>
             <ArrowUpRight className="w-6 h-6 text-gray-400" />
           </div>
@@ -126,10 +126,13 @@ export const LoginPage = () => {
       </div>
 
         {/* Right Section - Empty/Minimal */}
-        <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-gray-100 to-gray-50 items-center justify-center p-8">
-          <div className="text-center text-gray-400">
-            <Users className="w-32 h-32 mx-auto mb-4 opacity-20" />
-            <p className="text-lg">Welcome to your document workspace</p>
+        <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-gray-100 to-gray-50 items-center justify-center h-[calc(100vh-65px)] relative overflow-visible p-3">
+          <div className="text-center text-gray-400 relative">
+           <img 
+             src="/bg-document.gif" 
+             alt="Login Image" 
+             className="w-full object-cover" 
+           />
           </div>
         </div>
       </div>

@@ -144,7 +144,7 @@ export const DocsPage = () => {
       <header className="border-b border-gray-200 sticky top-0 bg-white z-50">
         <div className="flex items-center justify-between px-6 h-16">
           <div className="flex items-center space-x-4">
-            <img src="/vite.png" alt="Logo" className="h-8 w-8" />
+            <img src="/logo.svg" alt="Logo" className="h-8 w-8" />
             <h1 className="text-lg font-semibold">Documentation Hub Cientheon</h1>
           </div>
           <Button

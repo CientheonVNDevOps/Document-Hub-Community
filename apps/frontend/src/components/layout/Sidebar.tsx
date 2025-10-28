@@ -310,8 +310,8 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
       <div className="p-3">
         <div className={cn("flex items-center mb-4", isOpen ? "justify-between" : "justify-center")}>
           {isOpen &&
-            <div className="flex items-center justify-center gap-x-2">
-              <img src="/vite.png" alt="Document Hub Cientheon" width={30} height={30} />
+            <div className="flex items-center justify-center gap-x-4">
+              <img src="/logo.svg" alt="Document Hub Cientheon" className='ml-2' width={20} height={20} />
               <h2 className="text-lg font-semibold">Document Hub Cientheon</h2>
             </div>
           }
@@ -323,12 +323,11 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
         <div className="space-y-2">
           <Link
             to="/dashboard"
-            className={cn("flex items-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors", 
+            className={cn("flex items-center text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors",
               isOpen ? "w-full px-3 py-2" : "justify-center w-full py-3"
             )}
           >
-            <FileText className={cn("transition-all", !isOpen ? "w-6 h-6" : "w-4 h-4 mr-2")} />
-            {isOpen && "Dashboard"}
+            <FileText className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-6 w-6 mr-4")} />            {isOpen && <p className='text-base'>Dashboard</p>}
           </Link>
           {user?.role === 'admin' && (
             <Link
@@ -337,10 +336,10 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                 isOpen ? "w-full px-3 py-2" : "justify-center w-full py-3"
               )}
             >
-              <Shield className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-4 w-4 mr-2")} />
+              <Shield className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-6 w-6 mr-4")} />
               {isOpen && (
                 <div className="flex items-center justify-between w-full">
-                  <span>Admin Panel</span>
+                  <span className='text-base'>Admin Panel</span>
                   {pendingApprovals.length > 0 && (
                     <span className="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">
                       {pendingApprovals.length}
@@ -357,10 +356,10 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
                 isOpen ? "w-full px-3 py-2" : "justify-center w-full py-3"
               )}
             >
-              <Trash2 className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-4 w-4 mr-2")} />
+              <Trash2 className={cn("transition-all", !isOpen ? "h-6 w-6" : "h-6 w-6 mr-4")} />
               {isOpen && (
                 <div className="flex items-center justify-between w-full">
-                  <span>Trash</span>
+                  <span className='text-base'>Trash</span>
                   {totalTrashItems > 0 && (
                     <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-full">
                       {totalTrashItems}
